@@ -296,6 +296,45 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .toast{position:fixed;bottom:22px;right:22px;background:var(--s2);border:1px solid var(--green);border-radius:5px;padding:9px 15px;font-size:12px;color:var(--green);z-index:500;transform:translateY(10px);opacity:0;pointer-events:none;transition:all .22s ease;}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.terr{border-color:var(--red);color:var(--red);}
+
+/* ── SUMMARY MODAL ───────────────────────────────── */
+.modal.w640{width:640px;}
+.sum-section{margin-bottom:22px;}
+.sum-section:last-child{margin-bottom:0;}
+.sum-sec-title{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sum-sec-title::after{content:'';flex:1;height:1px;background:var(--b1);}
+.sum-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0;}
+.sum-meta-card{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:10px 13px;}
+.smc-lbl{font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:4px;}
+.smc-val{font-size:12px;color:var(--text);}
+.smc-val.ok{color:var(--green);}
+.smc-val.warn{color:var(--gold);}
+.smc-val.bad{color:var(--red);}
+.sum-stage-row{
+  display:grid;grid-template-columns:1fr 90px 90px 90px;
+  gap:8px;padding:8px 10px;border-bottom:1px solid var(--b1);
+  font-size:11px;align-items:center;
+}
+.sum-stage-row:last-child{border-bottom:none;}
+.sum-stage-row:hover{background:var(--s2);}
+.sum-stage-row.hd{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:6px 10px;background:var(--bg);}
+.ssr-name{color:var(--muted);}
+.ssr-name.done{color:var(--text);}
+.ssr-val{color:var(--muted);text-align:right;}
+.ssr-val.done{color:var(--text);}
+.ssr-val.skip{color:var(--dim);font-style:italic;text-align:right;}
+.ssr-bar-wrap{display:flex;align-items:center;justify-content:flex-end;}
+.ssr-bar-bg{width:60px;height:4px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.ssr-bar-fill{height:100%;border-radius:2px;}
+.sum-total-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 10px;margin-top:8px;
+  background:var(--s2);border:1px solid var(--b1);border-radius:4px;
+  font-size:12px;
+}
+.sum-total-lbl{color:var(--muted);}
+.sum-total-val{color:var(--gold);font-weight:500;}
+.sum-path-badge{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;border:1px solid;margin-left:8px;}
 </style>
 </head>
 <body>
@@ -505,6 +544,26 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
       <div class="m-ft-btns">
         <button class="btn btn-ghost" onclick="closeOv('ov-approval')">Cancel</button>
         <button class="btn btn-gold" onclick="confirmApproval()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Summary Modal -->
+<div class="overlay" id="ov-summary">
+  <div class="modal w640">
+    <div class="m-hd">
+      <div><h2 id="sum-title">Document Summary</h2><p id="sum-subtitle">Stage-by-stage breakdown and statistics</p></div>
+      <button class="m-close" onclick="closeOv('ov-summary')">✕</button>
+    </div>
+    <div class="m-body" id="sum-body">
+      <!-- Rendered by JS -->
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">Working hours: Mon–Fri, 8AM–5PM only.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-summary')">Close</button>
       </div>
     </div>
   </div>
@@ -747,6 +806,9 @@ function renderDetail(){
         <div>
           <div class="det-entity">${esc(doc.entity)}</div>
           <div class="det-meta"><span class="det-meta-i">Created ${fmt(doc.createdAt)}</span></div>
+        </div>
+        <div style="flex-shrink:0;padding-top:2px">
+          <button class="btn btn-ghost btn-sm" onclick="openSummary('${doc.id}')">⬡ Summary</button>
         </div>
       </div>
       <div class="info-cards">
@@ -1293,6 +1355,213 @@ function renderMetrics(){
       <div class="stbl-hd"><div>Stage</div><div>Avg Time</div><div>Distribution</div><div>Docs</div></div>
       ${stblRows||`<div style="padding:20px 16px;text-align:center;font-size:12px;color:var(--dim)">No stage data yet.</div>`}
     </div>`;
+}
+
+
+/* ══════════════════════════════════════════════
+   SUMMARY MODAL
+══════════════════════════════════════════════ */
+function openSummary(docId){
+  const doc=docs.find(d=>d.id===docId);
+  if(!doc) return;
+
+  $('sum-title').textContent=doc.entity;
+  $('sum-subtitle').textContent='Document summary & stage statistics';
+
+  // Build ordered list of all timestamped events for this doc
+  // Stage definitions in order with phase labels
+  const stageGroups = [
+    {phase:'Phase 1 — Technical Track', stages: P1_TECH},
+    {phase:'Phase 1 — Financial Track', stages: P1_FIN},
+    {phase:'Phase 1 — Legal Track',     stages: P1_LEGAL},
+  ];
+
+  if(doc.findings===false){
+    stageGroups.push({phase:'Phase 2A — No Findings', stages: P2A});
+    if(doc.certOutcome==='approved')    stageGroups.push({phase:'Phase 3A — Approved',    stages: P3A});
+    if(doc.certOutcome==='disapproved') stageGroups.push({phase:'Phase 3B — Disapproved', stages: P3B});
+  }
+  if(doc.findings===true){
+    stageGroups.push({phase:'Phase 2B — Findings Found', stages: P2B});
+  }
+
+  // Gather all timestamped events chronologically
+  const events=[{label:'Document Created', ts:doc.createdAt, phase:''}];
+  stageGroups.forEach(g=>{
+    g.stages.forEach(s=>{
+      const sd=doc.stages[s.key];
+      if(sd?.stampedAt) events.push({label:s.label, ts:sd.stampedAt, phase:g.phase, key:s.key, stageDef:s, stageData:sd});
+    });
+  });
+  // Special events
+  if(doc.mergeTs)          events.push({label:'Merge & Findings Recorded', ts:doc.mergeTs,          phase:'Phase 1 → Phase 2'});
+  if(doc.certDecisionTs)   events.push({label:`Certificate ${doc.certOutcome||'Decision'}`,           ts:doc.certDecisionTs,   phase:'Phase 2A → Phase 3'});
+  if(doc.p2_notified_ts)   events.push({label:'Applicant Notified (P2)',   ts:doc.p2_notified_ts,   phase:'Phase 2B'});
+  if(doc.p2_returned_ts)   events.push({label:'Application Returned (P2)', ts:doc.p2_returned_ts,   phase:'Phase 2B'});
+  if(doc.p3_notified_ts)   events.push({label:'Applicant Notified (P3)',   ts:doc.p3_notified_ts,   phase:'Phase 3'});
+  if(doc.p3_returned_ts)   events.push({label:'Application Returned (P3)', ts:doc.p3_returned_ts,   phase:'Phase 3'});
+
+  // Sort by timestamp
+  events.sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+
+  // Compute durations between consecutive events
+  function durStr(ms){
+    if(ms<=0) return '—';
+    const totalMins=Math.round(ms/60000);
+    const hrs=Math.floor(totalMins/60);
+    const mins=totalMins%60;
+    if(hrs===0) return `${mins}m`;
+    if(mins===0) return `${hrs}h`;
+    return `${hrs}h ${mins}m`;
+  }
+
+  function workMs(a,b){
+    if(!a||!b) return 0;
+    let s=new Date(a),e=new Date(b),ms=0;
+    if(e<=s) return 0;
+    let cur=new Date(s);
+    while(cur<e){
+      const day=cur.getDay();
+      if(day>=1&&day<=5){
+        const ws=new Date(cur);ws.setHours(8,0,0,0);
+        const we=new Date(cur);we.setHours(17,0,0,0);
+        const ss=cur<ws?ws:cur,se=e<we?e:we;
+        if(se>ss) ms+=(se-ss);
+      }
+      cur=new Date(cur);cur.setHours(0,0,0,0);cur.setDate(cur.getDate()+1);
+    }
+    return ms;
+  }
+
+  // Total elapsed (wall clock and working)
+  const firstTs=events[0]?.ts;
+  const lastTs=events[events.length-1]?.ts;
+  const totalWall=lastTs&&firstTs?new Date(lastTs)-new Date(firstTs):0;
+  const totalWork=lastTs&&firstTs?workMs(firstTs,lastTs):0;
+
+  // Find longest working-hours gap (bottleneck)
+  let maxWork=0, bottleneckLabel='';
+  for(let i=1;i<events.length;i++){
+    const wms=workMs(events[i-1].ts,events[i].ts);
+    if(wms>maxWork){maxWork=wms;bottleneckLabel=events[i].label;}
+  }
+
+  // Path taken
+  let pathLabel='In Progress';
+  let pathColor='var(--gold)';
+  if(isComplete(doc)){pathLabel='Complete — Certificate Released';pathColor='var(--green)';}
+  else if(doc.p3_returned_ts){pathLabel='Closed — Phase 3B (Disapproved, Returned)';pathColor='var(--red)';}
+  else if(doc.p2_returned_ts){pathLabel='Closed — Phase 2B (Deficiency, Returned)';pathColor='var(--red)';}
+  else if(doc.certOutcome==='approved'){pathLabel='Phase 3A — Approved';pathColor='var(--green)';}
+  else if(doc.certOutcome==='disapproved'){pathLabel='Phase 3B — Disapproved';pathColor='var(--red)';}
+  else if(doc.findings===true){pathLabel='Phase 2B — Findings Found';pathColor='var(--red)';}
+  else if(doc.findings===false){pathLabel='Phase 2A — No Findings';pathColor='var(--gold)';}
+
+  // Stage rows
+  const maxWms = events.length>1 ? Math.max(1,...Array.from({length:events.length-1},(_,i)=>workMs(events[i].ts,events[i+1].ts))) : 1;
+
+  const stageRows = events.map((ev,i)=>{
+    if(i===0) return `<div class="sum-stage-row">
+      <div class="ssr-name done">${ev.label}</div>
+      <div class="ssr-val done">${fmt(ev.ts)}</div>
+      <div class="ssr-val skip">—</div>
+      <div class="ssr-val skip">—</div>
+    </div>`;
+    const prev=events[i-1];
+    const wallMs=new Date(ev.ts)-new Date(prev.ts);
+    const wrkMs=workMs(prev.ts,ev.ts);
+    const barPct=Math.round(wrkMs/maxWms*100);
+    const barColor=wrkMs===maxWms?'var(--red)':barPct>50?'var(--gold)':'var(--green)';
+    const sub=ev.stageData?.passedBy?` <span style="font-size:10px;color:var(--green)">by ${esc(ev.stageData.passedBy)}</span>`:ev.stageData?.sentBy?` <span style="font-size:10px;color:var(--green)">by ${esc(ev.stageData.sentBy)}</span>`:'';
+    return `<div class="sum-stage-row">
+      <div class="ssr-name done">${ev.label}${sub}<div style="font-size:9px;color:var(--dim);margin-top:1px">${ev.phase}</div></div>
+      <div class="ssr-val done">${fmt(ev.ts)}</div>
+      <div class="ssr-val done" style="text-align:right">
+        <div>${durStr(wallMs)}</div>
+        <div style="font-size:9px;color:var(--dim)">${durStr(wrkMs)} work</div>
+      </div>
+      <div class="ssr-bar-wrap">
+        <div class="ssr-bar-bg"><div class="ssr-bar-fill" style="width:${barPct}%;background:${barColor}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const stampedCount=events.length-1;
+  const totalStampable=ALL_STAMPABLE.length;
+
+  $('sum-body').innerHTML=`
+    <div class="sum-section">
+      <div class="sum-sec-title">Document Info</div>
+      <div class="sum-meta-grid">
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Entity</div>
+          <div class="smc-val">${esc(doc.entity)}</div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Contact</div>
+          <div class="smc-val">${esc(doc.contact)}</div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Created</div>
+          <div class="smc-val">${fmt(doc.createdAt)}</div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Path / Status</div>
+          <div class="smc-val" style="color:${pathColor}">${pathLabel}</div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Stages Completed</div>
+          <div class="smc-val">${stampedCount} of ${totalStampable}</div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Findings</div>
+          <div class="smc-val ${doc.findings===null?'':'doc.findings?bad:ok'}" style="color:${doc.findings===null?'var(--dim)':doc.findings?'var(--red)':'var(--green)'}">
+            ${doc.findings===null?'Not yet recorded':doc.findings?'Findings Found (Path B)':'No Findings (Path A)'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sum-section">
+      <div class="sum-sec-title">Time Statistics</div>
+      <div class="sum-meta-grid">
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Total Elapsed (Wall Clock)</div>
+          <div class="smc-val ${totalWall>0?'warn':''}">
+            ${totalWall>0?durStr(totalWall):'<span style="color:var(--dim);font-style:italic">In progress</span>'}
+          </div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Total Working Hours</div>
+          <div class="smc-val ${totalWork>0?'warn':''}">
+            ${totalWork>0?durStr(totalWork):'<span style="color:var(--dim);font-style:italic">In progress</span>'}
+          </div>
+        </div>
+        <div class="sum-meta-card">
+          <div class="smc-lbl">Slowest Stage</div>
+          <div class="smc-val bad" style="font-size:11px">
+            ${bottleneckLabel||'<span style="color:var(--dim);font-style:italic">—</span>'}
+            ${maxWork>0?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${durStr(maxWork)} working time</div>`:''}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sum-section">
+      <div class="sum-sec-title">Stage-by-Stage Breakdown</div>
+      <div style="background:var(--s1);border:1px solid var(--b1);border-radius:5px;overflow:hidden">
+        <div class="sum-stage-row hd">
+          <div>Stage</div>
+          <div style="text-align:right">Timestamp</div>
+          <div style="text-align:right">Time since prev.</div>
+          <div style="text-align:right">Relative</div>
+        </div>
+        ${stageRows||`<div style="padding:16px;text-align:center;font-size:12px;color:var(--dim)">No stages stamped yet.</div>`}
+      </div>
+      ${totalWall>0?`<div class="sum-total-row"><span class="sum-total-lbl">Total document time</span><span class="sum-total-val">${durStr(totalWall)} elapsed · ${durStr(totalWork)} working</span></div>`:''}
+    </div>`;
+
+  openOv('ov-summary');
 }
 
 /* ══════════════════════════════════════════════
