@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0e0c;--s1:#1a1916;--s2:#242220;--s3:#2e2b27;
+  --b1:#2e2c29;--b2:#3a3835;
+  --gold:#d4a853;--gold-h:#e0b96a;
+  --green:#7eb89a;--red:#c96b5a;--blue:#60a5fa;--purple:#a78bfa;
+  --text:#e8e4dc;--muted:#7a766e;--dim:#4a4742;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;}
+
+.page{display:none;height:100vh;flex-direction:column;overflow:hidden;}
+.page.active{display:flex;}
+
+/* ── PIN ─────────────────────────────────────────── */
+#pg-pin{align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 45%,rgba(212,168,83,.05) 0%,transparent 70%);}
+.pin-wrap{display:flex;flex-direction:column;align-items:center;animation:fadeUp .45s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.pin-logo{font-family:'Fraunces',serif;font-size:26px;font-weight:300;color:var(--gold);margin-bottom:4px;}
+.pin-logo em{font-style:italic;color:var(--muted);}
+.pin-tagline{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:44px;}
+.pin-dots{display:flex;gap:13px;margin-bottom:34px;}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--b2);background:transparent;transition:all .18s;}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(212,168,83,.35);}
+.pin-dot.shake{background:var(--red);border-color:var(--red);animation:shake .28s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}33%{transform:translateX(-5px);}66%{transform:translateX(5px);}}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:216px;}
+.pin-key{height:54px;background:var(--s1);border:1px solid var(--b1);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:18px;cursor:pointer;transition:all .11s;}
+.pin-key:hover{background:var(--s2);border-color:var(--b2);}
+.pin-key:active{transform:scale(.94);}
+.pin-key.del{font-size:13px;color:var(--muted);}
+.pin-key.blank{visibility:hidden;}
+.pin-err{margin-top:18px;font-size:11px;color:var(--red);letter-spacing:.05em;height:15px;text-align:center;}
+
+/* ── HEADER ──────────────────────────────────────── */
+.hdr{height:52px;padding:0 22px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg);z-index:40;}
+.hdr-left{display:flex;align-items:baseline;gap:8px;}
+.hdr-logo{font-family:'Fraunces',serif;font-size:18px;font-weight:300;color:var(--gold);}
+.hdr-logo em{font-style:italic;color:var(--muted);}
+.hdr-tag{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);border:1px solid var(--b1);border-radius:2px;padding:2px 6px;}
+.hdr-nav{display:flex;gap:3px;}
+.nav-pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:5px 13px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;transition:all .14s;}
+.nav-pill:hover{color:var(--text);border-color:var(--b1);}
+.nav-pill.on{color:var(--gold);border-color:rgba(212,168,83,.3);background:rgba(212,168,83,.06);}
+.hdr-right{display:flex;gap:8px;align-items:center;}
+
+/* ── BUTTONS ─────────────────────────────────────── */
+.btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:7px 15px;border-radius:4px;border:1px solid;cursor:pointer;transition:all .13s;}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:#0f0e0c;font-weight:500;}
+.btn-gold:hover{background:var(--gold-h);}
+.btn-ghost{background:transparent;border-color:var(--b1);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text);}
+.btn-green{background:rgba(126,184,154,.1);border-color:var(--green);color:var(--green);}
+.btn-green:hover{background:rgba(126,184,154,.2);}
+.btn-red{background:transparent;border-color:rgba(201,107,90,.4);color:var(--red);}
+.btn-red:hover{background:rgba(201,107,90,.08);}
+.btn-blue{background:rgba(96,165,250,.1);border-color:var(--blue);color:var(--blue);}
+.btn-blue:hover{background:rgba(96,165,250,.2);}
+.btn-sm{padding:5px 11px;font-size:10px;}
+.btn-xs{padding:3px 8px;font-size:9px;}
+.btn:disabled{opacity:.38;cursor:not-allowed;}
+
+/* ── TRACKER LAYOUT ──────────────────────────────── */
+.tracker-body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;background:var(--s1);overflow:hidden;}
+.sb-hd{padding:12px 15px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.sb-hd-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+.doc-count{background:var(--s2);border:1px solid var(--b1);border-radius:3px;padding:2px 7px;font-size:11px;color:var(--gold);}
+.sb-search{padding:8px 13px;border-bottom:1px solid var(--b1);flex-shrink:0;}
+.sb-search input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:6px 9px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .14s;}
+.sb-search input:focus{border-color:var(--gold);}
+.sb-search input::placeholder{color:var(--dim);}
+.doc-list{flex:1;overflow-y:auto;}
+.doc-list::-webkit-scrollbar{width:3px;}
+.doc-list::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px;}
+.sb-empty{padding:32px 14px;text-align:center;color:var(--dim);font-size:12px;line-height:1.8;}
+.sb-empty-ic{font-size:28px;opacity:.18;margin-bottom:8px;}
+.doc-item{padding:11px 15px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .1s;position:relative;}
+.doc-item:hover{background:var(--s2);}
+.doc-item.sel{background:var(--s2);}
+.doc-item.sel::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);}
+.di-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;gap:6px;}
+.di-name{font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.di-sub{font-size:10px;color:var(--muted);margin-bottom:5px;}
+.di-bot{display:flex;align-items:center;justify-content:space-between;}
+.di-stage{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;}
+
+/* Badges */
+.badge{font-size:9px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px solid;flex-shrink:0;}
+.bdg-prog{color:var(--gold);border-color:rgba(212,168,83,.35);background:rgba(212,168,83,.07);}
+.bdg-closed{color:var(--red);border-color:rgba(201,107,90,.35);background:rgba(201,107,90,.07);}
+.bdg-complete{color:var(--green);border-color:rgba(126,184,154,.35);background:rgba(126,184,154,.07);}
+.bdg-approved{color:var(--green);border-color:rgba(126,184,154,.35);background:rgba(126,184,154,.07);}
+.bdg-disapproved{color:var(--red);border-color:rgba(201,107,90,.35);background:rgba(201,107,90,.07);}
+
+/* MAIN PANEL */
+.main-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.empty-view{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;}
+.empty-ic{font-size:44px;opacity:.1;}
+.empty-view p{font-family:'Fraunces',serif;font-style:italic;font-size:15px;color:var(--muted);}
+.empty-view span{font-size:11px;color:var(--dim);}
+
+/* DETAIL PANEL */
+.doc-detail{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.doc-detail.vis{display:flex;}
+
+.det-head{padding:18px 26px 0;border-bottom:1px solid var(--b1);flex-shrink:0;}
+.det-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px;}
+.det-entity{font-family:'Fraunces',serif;font-size:21px;font-weight:300;color:var(--text);margin-bottom:4px;}
+.det-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.det-meta-i{font-size:11px;color:var(--muted);}
+
+.info-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--b1);border-top:1px solid var(--b1);}
+.ic{background:var(--s1);padding:9px 18px;}
+.ic-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
+.ic-val{font-size:12px;color:var(--text);}
+.ic-val.ok{color:var(--green);}
+.ic-val.pending{color:var(--muted);font-style:italic;}
+
+.det-body{flex:1;overflow-y:auto;padding:22px 26px;}
+.det-body::-webkit-scrollbar{width:3px;}
+.det-body::-webkit-scrollbar-thumb{background:var(--b1);}
+
+/* Section headings */
+.sec-hd{font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:var(--dim);margin-bottom:13px;display:flex;align-items:center;gap:9px;}
+.sec-hd::after{content:'';flex:1;height:1px;background:var(--b1);}
+.sec-hd.phase{color:var(--gold);margin-top:6px;}
+.sec-hd.phase::after{background:rgba(212,168,83,.2);}
+
+/* Progress bar */
+.prog-bar{height:2px;background:var(--b1);border-radius:1px;margin-bottom:20px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:1px;transition:width .4s ease;}
+
+/* Three parallel tracks */
+.tracks-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+.track{background:var(--s1);border:1px solid var(--b1);border-radius:6px;overflow:hidden;}
+.track-hd{padding:9px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.track-title{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);}
+.track-on{font-size:9px;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid rgba(126,184,154,.4);color:var(--green);background:rgba(126,184,154,.08);}
+.track-off{font-size:9px;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid var(--b1);color:var(--dim);}
+
+/* Stage rows */
+.sr{display:grid;grid-template-columns:18px 1fr auto;align-items:start;gap:9px;padding:9px 14px;}
+.sr-dot-col{display:flex;flex-direction:column;align-items:center;padding-top:3px;align-self:stretch;}
+.sr-dot{width:8px;height:8px;border-radius:50%;border:2px solid var(--b1);background:var(--bg);flex-shrink:0;transition:all .18s;}
+.sr-line{width:2px;flex:1;background:var(--b1);margin-top:3px;min-height:6px;}
+.sr:last-child .sr-line{display:none;}
+.sr.done .sr-dot{background:var(--green);border-color:var(--green);}
+.sr.done .sr-line{background:rgba(126,184,154,.22);}
+.sr.nxt .sr-dot{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,83,.16);}
+.sr-name{font-size:11px;color:var(--dim);line-height:1.4;}
+.sr.done .sr-name{color:var(--muted);}
+.sr.nxt .sr-name{color:var(--text);font-weight:500;}
+.sr-sub{font-size:10px;color:var(--green);margin-top:1px;}
+.sr-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-top:1px;}
+.sr-ts{font-size:10px;color:var(--muted);white-space:nowrap;}
+.sr-ts.empty{color:var(--dim);font-style:italic;}
+.stmp-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border-radius:3px;border:1px solid var(--green);background:rgba(126,184,154,.07);color:var(--green);cursor:pointer;transition:all .13s;white-space:nowrap;}
+.stmp-btn:hover{background:rgba(126,184,154,.16);}
+
+/* Merge / lock banners */
+.merge-banner{background:var(--s1);border:1px solid var(--b1);border-radius:5px;padding:10px 15px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);}
+.merge-banner.open{border-color:rgba(126,184,154,.35);color:var(--muted);}
+.mb-ic{font-size:15px;flex-shrink:0;}
+
+/* Decision boxes */
+.decision-box{background:var(--s1);border:1px solid var(--b2);border-radius:6px;padding:14px 18px;margin-bottom:18px;}
+.decision-title{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px;}
+.decision-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.dec-opt{padding:12px 14px;border:2px solid var(--b1);border-radius:5px;cursor:pointer;transition:all .14s;text-align:center;}
+.dec-opt:hover{border-color:var(--b2);}
+.dec-opt.pick-a{border-color:var(--green);background:rgba(126,184,154,.07);}
+.dec-opt.pick-b{border-color:var(--red);background:rgba(201,107,90,.07);}
+.dec-opt.disabled-opt{opacity:.35;cursor:not-allowed;}
+.dec-lbl{font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin-bottom:3px;}
+.dec-lbl.a{color:var(--green);}
+.dec-lbl.b{color:var(--red);}
+.dec-desc{font-size:10px;color:var(--muted);}
+
+/* Single stage box */
+.single-stage-box{background:var(--s1);border:1px solid var(--b1);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ssb-hd{padding:9px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.ssb-title{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);}
+
+/* Path section box */
+.path-box{background:var(--s1);border:1px solid var(--b1);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.path-box-hd{padding:9px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.path-box-title{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);}
+
+/* Boolean fields */
+.bool-fields{padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+.bool-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;}
+.bool-label{font-size:12px;color:var(--muted);}
+.bool-check{display:flex;align-items:center;gap:8px;}
+.bool-check input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;}
+.bool-check label{font-size:11px;color:var(--dim);cursor:pointer;}
+.bool-check.checked label{color:var(--green);}
+
+/* Closed / complete banners */
+.closed-banner{background:rgba(201,107,90,.06);border:1px solid rgba(201,107,90,.3);border-radius:6px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--red);margin-bottom:16px;}
+.complete-banner{background:rgba(126,184,154,.06);border:1px solid rgba(126,184,154,.3);border-radius:6px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--green);margin-bottom:16px;}
+
+/* ── METRICS ──────────────────────────────────────── */
+.metrics-body{flex:1;overflow-y:auto;padding:26px 30px;}
+.metrics-body::-webkit-scrollbar{width:4px;}
+.metrics-body::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px;}
+.m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px;}
+.m-card{background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:16px 18px;}
+.m-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:7px;}
+.m-val{font-family:'Fraunces',serif;font-size:26px;font-weight:300;color:var(--text);margin-bottom:3px;}
+.m-sub{font-size:11px;color:var(--muted);}
+.m-gold{color:var(--gold);} .m-green{color:var(--green);} .m-red{color:var(--red);}
+.bottleneck{background:var(--s1);border:1px solid rgba(212,168,83,.3);border-radius:6px;padding:16px 20px;margin-bottom:26px;display:flex;align-items:center;gap:18px;}
+.bn-ic{font-size:26px;opacity:.5;}
+.bn-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:4px;}
+.bn-stage{font-family:'Fraunces',serif;font-size:18px;font-weight:300;color:var(--gold);margin-bottom:2px;}
+.bn-time{font-size:11px;color:var(--muted);}
+.stage-tbl{background:var(--s1);border:1px solid var(--b1);border-radius:6px;overflow:hidden;margin-bottom:26px;}
+.stbl-hd{display:grid;grid-template-columns:1fr 100px 140px 80px;padding:9px 16px;border-bottom:1px solid var(--b1);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);gap:10px;}
+.stbl-row{display:grid;grid-template-columns:1fr 100px 140px 80px;padding:11px 16px;border-bottom:1px solid var(--b1);font-size:12px;gap:10px;align-items:center;transition:background .1s;}
+.stbl-row:hover{background:var(--s2);}
+.stbl-row:last-child{border-bottom:none;}
+.bar-bg{flex:1;height:4px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;transition:width .35s ease;}
+.bar-slow{background:var(--red);} .bar-mid{background:var(--gold);} .bar-fast{background:var(--green);}
+
+/* ── MODALS ───────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s ease;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--s1);border:1px solid var(--b1);border-radius:8px;width:480px;max-width:calc(100vw - 28px);max-height:calc(100vh - 56px);overflow-y:auto;transform:translateY(10px);transition:transform .2s ease;}
+.overlay.open .modal{transform:translateY(0);}
+.modal.w560{width:560px;}
+.modal::-webkit-scrollbar{width:3px;}
+.modal::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px;}
+.m-hd{padding:17px 21px 15px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.m-hd h2{font-family:'Fraunces',serif;font-size:17px;font-weight:300;color:var(--gold);margin-bottom:2px;}
+.m-hd p{font-size:11px;color:var(--dim);}
+.m-close{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;padding:2px;transition:color .13s;flex-shrink:0;}
+.m-close:hover{color:var(--text);}
+.m-body{padding:19px 21px;}
+.m-ft{padding:13px 21px;border-top:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.m-ft-note{font-size:10px;color:var(--dim);}
+.m-ft-btns{display:flex;gap:8px;}
+/* Form */
+.fg{margin-bottom:15px;} .fg:last-child{margin-bottom:0;}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fl{display:flex;align-items:center;gap:4px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fl .req{color:var(--red);font-size:12px;line-height:1;}
+.fi,.fs,.fta{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:8px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .14s;appearance:none;}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--gold);}
+.fi::placeholder,.fta::placeholder{color:var(--dim);}
+.fi.err,.fs.err{border-color:var(--red);background:rgba(201,107,90,.05);}
+.fta{resize:vertical;min-height:66px;}
+.ferr{font-size:10px;color:var(--red);margin-top:4px;display:none;}
+.ferr.on{display:block;}
+.fsel-wrap{position:relative;}
+.fsel-wrap::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:10px;}
+.fs option{background:var(--s2);color:var(--text);}
+.fro{width:100%;background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:8px 10px;color:var(--dim);font-family:'DM Mono',monospace;font-size:12px;cursor:not-allowed;}
+.fdiv{height:1px;background:var(--b1);margin:14px 0;}
+.email-row{display:flex;gap:8px;}
+.email-row .fi{flex:1;}
+.cb-row{display:flex;align-items:center;gap:9px;margin-top:9px;padding:9px 11px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;}
+.cb-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+.cb-lbl{font-size:12px;color:var(--muted);cursor:pointer;transition:color .13s;}
+.cb-lbl.ok{color:var(--green);}
+.email-prev{background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:13px 15px;font-size:12px;line-height:1.7;color:var(--muted);}
+.ep-field{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:2px;}
+.ep-val{color:var(--text);font-size:13px;margin-bottom:11px;}
+.ep-body{color:var(--muted);border-top:1px solid var(--b1);padding-top:11px;margin-top:2px;line-height:1.8;}
+.stmp-info{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:9px 12px;margin-bottom:13px;}
+.stmp-info strong{display:block;font-size:13px;color:var(--text);margin-bottom:2px;}
+.stmp-info span{font-size:11px;color:var(--muted);}
+/* approval picker */
+.appr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+.appr-opt{padding:12px;border:2px solid var(--b1);border-radius:5px;cursor:pointer;transition:all .14s;text-align:center;}
+.appr-opt:hover{border-color:var(--b2);}
+.appr-opt.pick-appr{border-color:var(--green);background:rgba(126,184,154,.08);}
+.appr-opt.pick-disappr{border-color:var(--red);background:rgba(201,107,90,.08);}
+.appr-lbl{font-family:'Fraunces',serif;font-size:17px;font-weight:600;margin-bottom:3px;}
+.appr-lbl.a{color:var(--green);}
+.appr-lbl.b{color:var(--red);}
+.appr-desc{font-size:10px;color:var(--muted);}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--s2);border:1px solid var(--green);border-radius:5px;padding:9px 15px;font-size:12px;color:var(--green);z-index:500;transform:translateY(10px);opacity:0;pointer-events:none;transition:all .22s ease;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.terr{border-color:var(--red);color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ PIN PAGE ══════════════ -->
+<div id="pg-pin" class="page active">
+  <div class="pin-wrap">
+    <div class="pin-logo">Document <em>Tracker</em></div>
+    <div class="pin-tagline">Enter PIN to access</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" data-v="1">1</button><button class="pin-key" data-v="2">2</button><button class="pin-key" data-v="3">3</button>
+      <button class="pin-key" data-v="4">4</button><button class="pin-key" data-v="5">5</button><button class="pin-key" data-v="6">6</button>
+      <button class="pin-key" data-v="7">7</button><button class="pin-key" data-v="8">8</button><button class="pin-key" data-v="9">9</button>
+      <button class="pin-key blank"></button><button class="pin-key" data-v="0">0</button><button class="pin-key del" data-v="del">⌫</button>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TRACKER PAGE ══════════════ -->
+<div id="pg-tracker" class="page">
+  <header class="hdr">
+    <div class="hdr-left">
+      <span class="hdr-logo">Document <em>Tracker</em></span>
+      <span class="hdr-tag">Office</span>
+    </div>
+    <nav class="hdr-nav">
+      <button class="nav-pill on" onclick="goTo('tracker')">Tracker</button>
+      <button class="nav-pill" onclick="goTo('metrics')">Metrics</button>
+    </nav>
+    <div class="hdr-right">
+      <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+      <button class="btn btn-gold btn-sm" onclick="openCreate()">+ New Document</button>
+    </div>
+  </header>
+  <div class="tracker-body">
+    <aside class="sidebar">
+      <div class="sb-hd">
+        <span class="sb-hd-title">Documents</span>
+        <span class="doc-count" id="docCount">0</span>
+      </div>
+      <div class="sb-search"><input id="sbSearch" type="text" placeholder="Search by entity name…"></div>
+      <div class="doc-list" id="docList">
+        <div class="sb-empty"><div class="sb-empty-ic">⬡</div>No documents yet.<br>Create one to get started.</div>
+      </div>
+    </aside>
+    <div class="main-panel">
+      <div class="empty-view" id="emptyView">
+        <div class="empty-ic">⬡</div>
+        <p>Select a document to view details</p>
+        <span>or create a new one to get started</span>
+      </div>
+      <div class="doc-detail" id="docDetail"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ METRICS PAGE ══════════════ -->
+<div id="pg-metrics" class="page">
+  <header class="hdr">
+    <div class="hdr-left">
+      <span class="hdr-logo">Document <em>Tracker</em></span>
+      <span class="hdr-tag">Office</span>
+    </div>
+    <nav class="hdr-nav">
+      <button class="nav-pill" onclick="goTo('tracker')">Tracker</button>
+      <button class="nav-pill on" onclick="goTo('metrics')">Metrics</button>
+    </nav>
+    <div class="hdr-right">
+      <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+    </div>
+  </header>
+  <div class="metrics-body" id="metricsBody"></div>
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Create Document -->
+<div class="overlay" id="ov-create">
+  <div class="modal w560">
+    <div class="m-hd"><div><h2>New Document</h2><p>Fields marked * are required</p></div><button class="m-close" onclick="closeOv('ov-create')">✕</button></div>
+    <div class="m-body">
+      <div class="fg2">
+        <div class="fg">
+          <div class="fl">Entity Name <span class="req">*</span></div>
+          <input type="text" id="f-entity" class="fi" placeholder="Full name of person or company" maxlength="120" autocomplete="off">
+          <div class="ferr" id="fe-entity">Entity name is required.</div>
+        </div>
+        <div class="fg">
+          <div class="fl">Contact Person <span class="req">*</span></div>
+          <input type="text" id="f-contact" class="fi" placeholder="Name of contact person" maxlength="120" autocomplete="off">
+          <div class="ferr" id="fe-contact">Contact person is required.</div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl">Email Address <span class="req">*</span></div>
+        <div class="email-row">
+          <input type="email" id="f-email" class="fi" placeholder="client@email.com" autocomplete="off">
+          <button class="btn btn-ghost btn-sm" onclick="openEmailPrev('verify')">Send Verification</button>
+        </div>
+        <div class="ferr" id="fe-email">A valid email address is required.</div>
+        <div class="cb-row">
+          <input type="checkbox" id="f-emailVerif" onchange="onCbChange('f-emailVerif','cb-lbl')">
+          <label class="cb-lbl" id="cb-lbl" for="f-emailVerif">Email Verified</label>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl">Remarks</div>
+        <textarea id="f-remarks" class="fta" placeholder="Optional notes or remarks…" maxlength="500"></textarea>
+      </div>
+      <div class="fdiv"></div>
+      <div class="fg">
+        <div class="fl">Date &amp; Time Created</div>
+        <div class="fro" id="f-created">— set automatically on save —</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">Created timestamp is set automatically.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-create')">Cancel</button>
+        <button class="btn btn-gold" onclick="saveDoc()">Create Document</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Email Preview Modal -->
+<div class="overlay" id="ov-emailprev">
+  <div class="modal">
+    <div class="m-hd"><div><h2 id="ep-title">Email Preview</h2><p>Review before sending</p></div><button class="m-close" onclick="closeOv('ov-emailprev')">✕</button></div>
+    <div class="m-body">
+      <div class="email-prev">
+        <div class="ep-field">To</div><div class="ep-val" id="ep-to">—</div>
+        <div class="ep-field">Subject</div><div class="ep-val" id="ep-subj">—</div>
+        <div class="ep-body" id="ep-body">—</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">Actual sending requires backend setup.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-emailprev')">Close</button>
+        <button class="btn btn-gold" id="ep-confirm-btn" onclick="confirmEmailSent()">Mark as Sent</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stamp Modal -->
+<div class="overlay" id="ov-stamp">
+  <div class="modal">
+    <div class="m-hd"><div><h2>Record Stage</h2><p>Confirm the timestamp for this stage</p></div><button class="m-close" onclick="closeOv('ov-stamp')">✕</button></div>
+    <div class="m-body">
+      <div class="stmp-info"><strong id="sm-name"></strong><span id="sm-hint"></span></div>
+      <div class="fg" id="sm-passedby-grp" style="display:none">
+        <div class="fl">Passed By <span class="req">*</span></div>
+        <input type="text" id="sm-passedby" class="fi" placeholder="Name of person who passed it" maxlength="80">
+        <div class="ferr" id="sme-passedby">This field is required.</div>
+      </div>
+      <div class="fg" id="sm-sentby-grp" style="display:none">
+        <div class="fl">Sent By (CDO II) <span class="req">*</span></div>
+        <input type="text" id="sm-sentby" class="fi" placeholder="Name of CDO II" maxlength="80">
+        <div class="ferr" id="sme-sentby">This field is required.</div>
+      </div>
+      <div class="fg">
+        <div class="fl">Date &amp; Time <span class="req">*</span></div>
+        <input type="datetime-local" id="sm-dt" class="fi">
+        <div class="ferr" id="sme-dt">This field is required.</div>
+        <div class="ferr" id="sme-future">Cannot be set to a future time.</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note" id="sm-note"></span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-stamp')">Cancel</button>
+        <button class="btn btn-gold" onclick="doStamp()">Record Timestamp</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Approval/Disapproval Modal (Phase 2A final action) -->
+<div class="overlay" id="ov-approval">
+  <div class="modal">
+    <div class="m-hd"><div><h2>Certificate Decision</h2><p>Record the outcome after OC Final Action</p></div><button class="m-close" onclick="closeOv('ov-approval')">✕</button></div>
+    <div class="m-body">
+      <div class="fg">
+        <div class="fl">Outcome <span class="req">*</span></div>
+        <div class="appr-grid">
+          <div class="appr-opt" id="appr-yes" onclick="pickApproval('approved')">
+            <div class="appr-lbl a">Approved</div>
+            <div class="appr-desc">Proceed to Phase 3A</div>
+          </div>
+          <div class="appr-opt" id="appr-no" onclick="pickApproval('disapproved')">
+            <div class="appr-lbl b">Disapproved</div>
+            <div class="appr-desc">Proceed to Phase 3B</div>
+          </div>
+        </div>
+        <div class="ferr" id="appr-err">Please select an outcome.</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note"></span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-approval')">Cancel</button>
+        <button class="btn btn-gold" onclick="confirmApproval()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════════════════
+   STAGE DEFINITIONS
+══════════════════════════════════════════════ */
+
+// Phase 1 — Three parallel tracks
+const P1_TECH = [
+  {key:'p1_tech',      label:'Technical Evaluation', hint:'Engineer II/III', group:'p1_tech'},
+  {key:'p1_tech_done', label:'Evaluation Done',       hint:'Mark technical evaluation as complete.', group:'p1_tech'},
+];
+const P1_FIN = [
+  {key:'p1_fin',       label:'Financial Evaluation',  hint:'Financial Analyst II/III', group:'p1_fin'},
+  {key:'p1_fin_done',  label:'Evaluation Done',        hint:'Mark financial evaluation as complete.', group:'p1_fin'},
+];
+const P1_LEGAL = [
+  {key:'p1_legal_trans', label:'Transferred to Legal', hint:'Record who passed it.', passedBy:true, group:'p1_legal'},
+  {key:'p1_legal_recv',  label:'Received from Legal',  hint:'', group:'p1_legal'},
+];
+
+// Phase 2A — No findings
+const P2A = [
+  {key:'p2a_endorse',    label:'Endorse Application to SID',                hint:''},
+  {key:'p2a_briefer',    label:'Prepare Briefer and Draft Certificate',     hint:'Engineer'},
+  {key:'p2a_chief_sid',  label:'Briefer submitted to Chief SID',            hint:''},
+  {key:'p2a_director',   label:'Briefer submitted to Director',             hint:''},
+  {key:'p2a_recommend',  label:'Recommend Approval to ODC',                 hint:'Sent by CDO II — record name.', sentBy:true},
+  {key:'p2a_odc',        label:'Initial Action (ODC)',                      hint:'Stamp time as submitted to ODC.'},
+  {key:'p2a_oc',         label:'Final Action (OC)',                         hint:'Stamp time as received from OC.', isApproval:true},
+];
+
+// Phase 2B — Findings found (dead-end)
+const P2B = [
+  {key:'p2b_nod',        label:'Issue Notice of Deficiency',                hint:''},
+  {key:'p2b_endorse',    label:'Endorse Application and NOD to SID',        hint:''},
+];
+
+// Phase 3A — Approved
+const P3A = [
+  {key:'p3a_soa',        label:'Prepare Statement of Account (SOA)',        hint:'Engineer'},
+  {key:'p3a_review_soa', label:'Review SOA',                                hint:'Chief SID'},
+  {key:'p3a_approve_soa',label:'Approve SOA',                               hint:'Director'},
+  {key:'p3a_payment',    label:'Payment Stage',                              hint:''},
+  {key:'p3a_release',    label:'Release Certificate to Applicant',          hint:'', isComplete:true},
+];
+
+// Phase 3B — Disapproved (dead-end)
+const P3B = [
+  {key:'p3b_draft_nod',  label:'Draft Notice of Disapproval',               hint:'Chief SID'},
+  {key:'p3b_review_nod', label:'Review Notice',                             hint:'Director - RB'},
+  {key:'p3b_issue_nod',  label:'Issue Notice of Disapproval',               hint:'ODC'},
+];
+
+const ALL_STAMPABLE = [...P1_TECH,...P1_FIN,...P1_LEGAL,...P2A,...P2B,...P3A,...P3B];
+
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+let docs=[], selId=null, stampCtx=null, approvalPick=null;
+let emailPrevCtx=null; // {type:'verify'|'p2_notify'|'p3a_notify'|'p3b_notify', docId}
+
+/* ══════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════ */
+const $  = id=>document.getElementById(id);
+const esc= s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const genId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const fmt=iso=>iso?new Date(iso).toLocaleString('en-PH',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}):'—';
+const nowLocal=()=>{const n=new Date();n.setSeconds(0,0);return new Date(n-n.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+
+function toast(msg,err=false){
+  const t=$('toast'); t.textContent=msg;
+  t.className='toast'+(err?' terr':'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ══════════════════════════════════════════════
+   PIN
+══════════════════════════════════════════════ */
+const PIN='0928'; let pin='';
+document.querySelectorAll('.pin-key').forEach(k=>{
+  k.addEventListener('click',()=>{
+    const v=k.dataset.v;
+    if(v==='del') pin=pin.slice(0,-1);
+    else if(pin.length<4) pin+=v;
+    syncDots();
+    if(pin.length===4) checkPin();
+  });
+});
+document.addEventListener('keydown',e=>{
+  if($('pg-pin').classList.contains('active')){
+    if(e.key>='0'&&e.key<='9'&&pin.length<4){pin+=e.key;syncDots();if(pin.length===4)checkPin();}
+    else if(e.key==='Backspace'){pin=pin.slice(0,-1);syncDots();}
+  }
+  if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(el=>closeOv(el.id));
+});
+function syncDots(){
+  document.querySelectorAll('.pin-dot').forEach((d,i)=>{
+    d.classList.toggle('filled',i<pin.length); d.classList.remove('shake');
+  });
+}
+function checkPin(){
+  if(pin===PIN){$('pinErr').textContent='';setTimeout(()=>goTo('tracker'),200);}
+  else{
+    document.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('shake'));
+    $('pinErr').textContent='Incorrect PIN — try again.';
+    setTimeout(()=>{pin='';syncDots();},700);
+  }
+}
+function doLock(){pin='';syncDots();$('pinErr').textContent='';goTo('pin');}
+
+/* ══════════════════════════════════════════════
+   PAGE NAV
+══════════════════════════════════════════════ */
+function goTo(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('pg-'+name).classList.add('active');
+  document.querySelectorAll('.nav-pill').forEach(b=>{
+    b.classList.toggle('on',b.textContent.trim().toLowerCase()===name);
+  });
+  if(name==='metrics') renderMetrics();
+}
+
+/* ══════════════════════════════════════════════
+   DOC STATUS HELPERS
+══════════════════════════════════════════════ */
+function p1Done(doc){ return P1_TECH.every(s=>doc.stages[s.key]) && P1_FIN.every(s=>doc.stages[s.key]) && P1_LEGAL.every(s=>doc.stages[s.key]); }
+function isClosed(doc){ return !!(doc.p2_returned_ts || doc.p3_returned_ts); }
+function isComplete(doc){ return !!doc.stages['p3a_release']; }
+
+function docStatusBadge(doc){
+  if(isComplete(doc)) return `<span class="badge bdg-complete">Complete</span>`;
+  if(isClosed(doc))   return `<span class="badge bdg-closed">Closed</span>`;
+  if(doc.certOutcome==='approved')    return `<span class="badge bdg-approved">Approved</span>`;
+  if(doc.certOutcome==='disapproved') return `<span class="badge bdg-disapproved">Disapproved</span>`;
+  return `<span class="badge bdg-prog">In Progress</span>`;
+}
+
+function lastLabel(doc){
+  for(let i=ALL_STAMPABLE.length-1;i>=0;i--)
+    if(doc.stages[ALL_STAMPABLE[i].key]) return ALL_STAMPABLE[i].label;
+  return 'Created';
+}
+
+/* ══════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════ */
+function renderSidebar(){
+  const q=$('sbSearch').value.trim().toLowerCase();
+  const list=q?docs.filter(d=>d.entity.toLowerCase().includes(q)):docs;
+  $('docCount').textContent=docs.length;
+  const el=$('docList');
+  if(!list.length){
+    el.innerHTML=`<div class="sb-empty"><div class="sb-empty-ic">⬡</div>${docs.length?'No documents match.':'No documents yet.<br>Create one to get started.'}</div>`;
+    return;
+  }
+  el.innerHTML=list.map(d=>`
+    <div class="doc-item${d.id===selId?' sel':''}" data-id="${d.id}">
+      <div class="di-top"><span class="di-name">${esc(d.entity)}</span>${docStatusBadge(d)}</div>
+      <div class="di-sub">Contact: ${esc(d.contact)} · ${fmt(d.createdAt).split(',')[0]}</div>
+      <div class="di-bot"><span class="di-stage">↳ ${lastLabel(d)}</span></div>
+    </div>`).join('');
+  el.querySelectorAll('.doc-item').forEach(el=>el.addEventListener('click',()=>selDoc(el.dataset.id)));
+}
+$('sbSearch').addEventListener('input',renderSidebar);
+
+/* ══════════════════════════════════════════════
+   DETAIL RENDER
+══════════════════════════════════════════════ */
+function selDoc(id){ selId=id; renderSidebar(); $('emptyView').style.display='none'; $('docDetail').classList.add('vis'); renderDetail(); }
+
+function stageRow(s, isDone, isNxt, sd, locked, docId, trackKey, idx){
+  const ts=sd?.stampedAt||null;
+  const sub=sd?.passedBy?`<div class="sr-sub">By: ${esc(sd.passedBy)}</div>`:sd?.sentBy?`<div class="sr-sub">Sent by: ${esc(sd.sentBy)}</div>`:'';
+  const cls=isDone?'done':isNxt?'nxt':'';
+  let right;
+  if(isDone) right=`<span class="sr-ts">${fmt(ts)}</span>`;
+  else if(isNxt&&!locked) right=`<button class="stmp-btn" data-doc="${docId}" data-track="${trackKey}" data-idx="${idx}">${s.isApproval?'Record &amp; Decide':'Stamp'}</button>`;
+  else right=`<span class="sr-ts empty">—</span>`;
+  return `<div class="sr ${cls}">
+    <div class="sr-dot-col"><div class="sr-dot"></div><div class="sr-line"></div></div>
+    <div><div class="sr-name">${s.label}${s.hint?`<span style="font-size:10px;color:var(--dim);display:block;margin-top:1px">${s.hint}</span>`:''}${sub}</div></div>
+    <div class="sr-right">${right}</div>
+  </div>`;
+}
+
+function buildTrackRows(defs, doc, trackKey, locked){
+  const nextIdx=locked?-1:defs.findIndex(s=>!doc.stages[s.key]);
+  return defs.map((s,i)=>stageRow(s,!!doc.stages[s.key],i===nextIdx,doc.stages[s.key],locked,doc.id,trackKey,i)).join('');
+}
+
+function renderDetail(){
+  const doc=docs.find(d=>d.id===selId);
+  if(!doc) return;
+
+  const total=ALL_STAMPABLE.length;
+  const done=ALL_STAMPABLE.filter(s=>doc.stages[s.key]).length;
+  const pct=Math.round(done/total*100);
+
+  // Phase 1 track states
+  const techDone=!!doc.stages['p1_tech'];
+  const finDone=!!doc.stages['p1_fin'];
+  const legalDone=P1_LEGAL.every(s=>doc.stages[s.key]);
+  const p1Merged=techDone&&finDone&&legalDone;
+
+  // Phase 1 findings decision
+  const findingsSet=doc.findings!==undefined&&doc.findings!==null;
+  const hasFindings=doc.findings===true;
+
+  // Phase 2 paths
+  const p2Locked=!p1Merged||!findingsSet;
+  const onP2A=p1Merged&&findingsSet&&!hasFindings;
+  const onP2B=p1Merged&&findingsSet&&hasFindings;
+
+  // P2A approval decision
+  const p2aDone=P2A.every(s=>doc.stages[s.key]);
+  const certOutcomeSet=!!doc.certOutcome;
+
+  // Phase 3
+  const onP3A=onP2A&&certOutcomeSet&&doc.certOutcome==='approved';
+  const onP3B=onP2A&&certOutcomeSet&&doc.certOutcome==='disapproved';
+
+  const emailVal=doc.emailVerified
+    ?`<span class="ic-val ok">✓ ${esc(doc.email)}</span>`
+    :`<span class="ic-val pending">${esc(doc.email)} — unverified</span>`;
+
+  // ── Build HTML ──
+  let html=`
+    <div class="det-head">
+      <div class="det-head-row">
+        <div>
+          <div class="det-entity">${esc(doc.entity)}</div>
+          <div class="det-meta"><span class="det-meta-i">Created ${fmt(doc.createdAt)}</span></div>
+        </div>
+      </div>
+      <div class="info-cards">
+        <div class="ic"><div class="ic-lbl">Entity Name</div><div class="ic-val">${esc(doc.entity)}</div></div>
+        <div class="ic"><div class="ic-lbl">Contact Person</div><div class="ic-val">${esc(doc.contact)}</div></div>
+        <div class="ic"><div class="ic-lbl">Email</div>${emailVal}</div>
+        <div class="ic"><div class="ic-lbl">Remarks</div><div class="ic-val">${doc.remarks||'<span style="color:var(--dim);font-style:italic">None</span>'}</div></div>
+        <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${pct}%</div></div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+
+      <!-- PHASE 1 -->
+      <div class="sec-hd phase">Phase 1 — Parallel Evaluation</div>
+      <div class="tracks-3">
+        <div class="track">
+          <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone?'track-on':'track-off'}">${techDone?'✓ Done':'Pending'}</span></div>
+          ${buildTrackRows(P1_TECH,doc,'p1_tech',false)}
+        </div>
+        <div class="track">
+          <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone?'track-on':'track-off'}">${finDone?'✓ Done':'Pending'}</span></div>
+          ${buildTrackRows(P1_FIN,doc,'p1_fin',false)}
+        </div>
+        <div class="track">
+          <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone?'track-on':'track-off'}">${legalDone?'✓ Done':'Pending'}</span></div>
+          ${buildTrackRows(P1_LEGAL,doc,'p1_legal',false)}
+        </div>
+      </div>
+
+      <!-- FINDINGS DECISION -->
+      <div class="merge-banner ${p1Merged?'open':''}">
+        <span class="mb-ic">${p1Merged?'🔓':'🔒'}</span>
+        <span>${p1Merged?'All Phase 1 tracks complete — record findings decision below.':'All three Phase 1 tracks must be complete before proceeding.'}</span>
+      </div>`;
+
+  // Findings + merge timestamp
+  if(p1Merged){
+    if(!findingsSet){
+      html+=`<div class="decision-box" style="margin-bottom:18px">
+        <div class="decision-title">Merge &amp; Findings Check — record timestamp and decision</div>
+        <div class="fg" style="margin-bottom:12px">
+          <div class="fl">Date &amp; Time of Merge <span class="req">*</span></div>
+          <input type="datetime-local" id="findings-dt" class="fi" value="${nowLocal()}" style="max-width:280px">
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted)">
+            <input type="checkbox" id="cb-findings" style="width:15px;height:15px;accent-color:var(--red);cursor:pointer">
+            <span>Findings Found (Path B)</span>
+          </label>
+          <span style="font-size:10px;color:var(--dim)">Leave unchecked for No Findings (Path A)</span>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="confirmFindings()">Confirm &amp; Record Merge</button>
+      </div>`;
+    } else {
+      html+=`<div class="decision-box" style="margin-bottom:18px;border-color:rgba(126,184,154,.3)">
+        <div class="decision-title">Merge &amp; Findings — recorded</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px">
+          <div><span style="color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px">Merge Timestamp</span><span style="color:var(--text)">${fmt(doc.mergeTs)}</span></div>
+          <div><span style="color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px">Findings</span><span style="${hasFindings?'color:var(--red)':'color:var(--green)'}">${hasFindings?'✓ Findings Found → Path B':'✓ No Findings → Path A'}</span></div>
+        </div>
+      </div>`;
+    }
+  } else {
+    html+=`<div class="decision-box" style="margin-bottom:18px;opacity:.4">
+      <div class="decision-title">Merge &amp; Findings Check — locked until all Phase 1 tracks complete</div>
+    </div>`;
+  }
+
+  // Phase 2
+  html+=`<div class="sec-hd phase">Phase 2 — ${!findingsSet?'Pending Decision':hasFindings?'Path B — Findings Found':'Path A — No Findings'}</div>`;
+
+  if(!findingsSet){
+    html+=`<div class="merge-banner"><span class="mb-ic">🔒</span><span>Confirm the findings decision above to unlock Phase 2.</span></div>`;
+  } else if(onP2B){
+    // PATH 2B
+    html+=`<div class="path-box">
+      <div class="path-box-hd"><span class="path-box-title">Path B — Deficiency Process</span><span class="track-off">Dead-end path</span></div>
+      ${buildTrackRows(P2B,doc,'p2b',false)}
+      <div class="bool-fields">
+        <div class="bool-row">
+          <span class="bool-label">Applicant Notified (p2)</span>
+          <div class="bool-check ${doc.p2_notified_ts?'checked':''}">
+            ${doc.p2_notified_ts
+              ? `<span style="font-size:11px;color:var(--green)">✓ ${fmt(doc.p2_notified_ts)}</span>`
+              : `<button class="stmp-btn" onclick="openTsModal('p2_notified_ts','Applicant Notified (P2)','${doc.id}')">Record Timestamp</button>`
+            }
+          </div>
+        </div>
+        <div class="bool-row">
+          <span class="bool-label">Application Returned (p2)</span>
+          <div class="bool-check ${doc.p2_returned_ts?'checked':''}">
+            ${doc.p2_returned_ts
+              ? `<span style="font-size:11px;color:var(--green)">✓ ${fmt(doc.p2_returned_ts)}</span>`
+              : `<button class="stmp-btn" ${!doc.p2_notified_ts?'disabled style="opacity:.4;cursor:not-allowed"':''} onclick="openTsModal('p2_returned_ts','Application Returned (P2)','${doc.id}')">Record Timestamp</button>`
+            }
+          </div>
+        </div>
+      </div>
+    </div>`;
+    if(doc.p2_notified_ts&&doc.p2_returned_ts){
+      const closeTs=doc.p2_close_ts||doc.p2_returned_ts;
+      html+=`<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p2_notified_ts)}, application returned ${fmt(doc.p2_returned_ts)}.</div>`;
+    }
+  } else if(onP2A){
+    // PATH 2A
+    html+=`<div class="path-box">
+      <div class="path-box-hd"><span class="path-box-title">Path A — No Findings</span><span class="track-on">Active path</span></div>
+      ${buildTrackRows(P2A,doc,'p2a',false)}
+    </div>`;
+
+    // Approval decision (after p2a_oc stamped)
+    if(doc.stages['p2a_oc']){
+      if(!certOutcomeSet){
+        html+=`<div class="decision-box">
+          <div class="decision-title">Certificate Decision — record timestamp and outcome</div>
+          <div class="fg" style="margin-bottom:12px">
+            <div class="fl">Date &amp; Time of Decision <span class="req">*</span></div>
+            <input type="datetime-local" id="approval-dt" class="fi" value="${nowLocal()}" style="max-width:280px">
+          </div>
+          <div class="appr-grid">
+            <div class="appr-opt" id="det-appr-yes" onclick="openApprovalModal('${doc.id}')"><div class="appr-lbl a">Approved</div><div class="appr-desc">Proceed to Phase 3A</div></div>
+            <div class="appr-opt" id="det-appr-no" onclick="openApprovalModal('${doc.id}')"><div class="appr-lbl b">Disapproved</div><div class="appr-desc">Proceed to Phase 3B</div></div>
+          </div>
+          <div class="ferr on" id="appr-inline-err" style="display:none;margin-top:8px"></div>
+        </div>`;
+      } else {
+        html+=`<div class="decision-box" style="margin-bottom:18px;border-color:${doc.certOutcome==='approved'?'rgba(126,184,154,.3)':'rgba(201,107,90,.3)'}">
+          <div class="decision-title">Certificate Decision — recorded</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px">
+            <div><span style="color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px">Decision Timestamp</span><span style="color:var(--text)">${fmt(doc.certDecisionTs)}</span></div>
+            <div><span style="color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px">Outcome</span><span style="color:${doc.certOutcome==='approved'?'var(--green)':'var(--red)'};font-weight:500;text-transform:uppercase">${doc.certOutcome}</span></div>
+          </div>
+        </div>
+        <div class="merge-banner open"><span class="mb-ic">🔓</span><span>Certificate ${doc.certOutcome} — proceeding to Phase 3${doc.certOutcome==='approved'?'A':'B'}.</span></div>`;
+      }
+    }
+
+    // Phase 3
+    if(certOutcomeSet){
+      html+=`<div class="sec-hd phase">Phase 3 — ${onP3A?'Path A — Approved':'Path B — Disapproved'}</div>`;
+
+      if(onP3A){
+        html+=`<div class="path-box">
+          <div class="path-box-hd"><span class="path-box-title">Path 3A — Approval Process</span><span class="track-on">Active</span></div>
+          ${buildTrackRows(P3A,doc,'p3a',false)}
+          <div class="bool-fields">
+            <div class="bool-row">
+              <span class="bool-label">Applicant Notified (p3) — SOA &amp; Fees</span>
+              <div class="bool-check ${doc.p3_notified_ts?'checked':''}">
+                ${doc.p3_notified_ts
+                  ? `<span style="font-size:11px;color:var(--green)">✓ ${fmt(doc.p3_notified_ts)}</span>`
+                  : doc.stages['p3a_approve_soa']
+                    ? `<div style="display:flex;align-items:center;gap:8px">
+                        <button class="btn btn-green btn-xs" onclick="openEmailPrev('p3a_notify','${doc.id}')">✉ Preview</button>
+                        <button class="stmp-btn" onclick="openTsModal('p3_notified_ts','Applicant Notified — SOA &amp; Fees (P3)','${doc.id}')">Record Timestamp</button>
+                       </div>`
+                    : `<span style="font-size:10px;color:var(--dim)">Unlock after Approve SOA</span>`
+                }
+              </div>
+            </div>
+          </div>
+        </div>`;
+        if(doc.stages['p3a_release']){
+          html+=`<div class="complete-banner">✓ Document complete — certificate released to applicant on ${fmt(doc.stages['p3a_release'].stampedAt)}.</div>`;
+        }
+      } else if(onP3B){
+        html+=`<div class="path-box">
+          <div class="path-box-hd"><span class="path-box-title">Path 3B — Disapproval Process</span><span class="track-off">Dead-end path</span></div>
+          ${buildTrackRows(P3B,doc,'p3b',false)}
+          <div class="bool-fields">
+            <div class="bool-row">
+              <span class="bool-label">Applicant Notified (p3) — Notice of Disapproval</span>
+              <div class="bool-check ${doc.p3_notified_ts?'checked':''}">
+                ${doc.p3_notified_ts
+                  ? `<span style="font-size:11px;color:var(--green)">✓ ${fmt(doc.p3_notified_ts)}</span>`
+                  : doc.stages['p3b_issue_nod']
+                    ? `<div style="display:flex;align-items:center;gap:8px">
+                        <button class="btn btn-green btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>
+                        <button class="stmp-btn" onclick="openTsModal('p3_notified_ts','Applicant Notified — NOD (P3)','${doc.id}')">Record Timestamp</button>
+                       </div>`
+                    : `<span style="font-size:10px;color:var(--dim)">Unlock after Issue NOD</span>`
+                }
+              </div>
+            </div>
+            <div class="bool-row">
+              <span class="bool-label">Application Returned (p3)</span>
+              <div class="bool-check ${doc.p3_returned_ts?'checked':''}">
+                ${doc.p3_returned_ts
+                  ? `<span style="font-size:11px;color:var(--green)">✓ ${fmt(doc.p3_returned_ts)}</span>`
+                  : `<button class="stmp-btn" ${!doc.p3_notified_ts?'disabled style="opacity:.4;cursor:not-allowed"':''} onclick="openTsModal('p3_returned_ts','Application Returned (P3)','${doc.id}')">Record Timestamp</button>`
+                }
+              </div>
+            </div>
+          </div>
+        </div>`;
+        if(doc.p3_notified_ts&&doc.p3_returned_ts){
+          html+=`<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3_notified_ts)}, application returned ${fmt(doc.p3_returned_ts)}.</div>`;
+        }
+      }
+    }
+  }
+
+  html+=`</div>`; // close det-body
+  $('docDetail').innerHTML=html;
+
+  // Wire stamp buttons
+  $('docDetail').querySelectorAll('.stmp-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const {doc:dId,track,idx}=btn.dataset;
+      openStamp(dId,track,parseInt(idx));
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════
+   FINDINGS
+══════════════════════════════════════════════ */
+function setFindings(e){
+  // just visual until confirmed
+}
+
+function confirmFindings(){
+  const doc=docs.find(d=>d.id===selId);
+  const dtEl=$('findings-dt');
+  const cbEl=$('cb-findings');
+  if(!dtEl) return;
+  const dt=dtEl.value;
+  if(!dt){ toast('Please set a merge date and time.',true); return; }
+  if(new Date(dt)>new Date()){ toast('Merge timestamp cannot be in the future.',true); return; }
+  doc.mergeTs=new Date(dt).toISOString();
+  doc.findings=cbEl?cbEl.checked:false;
+  renderSidebar(); renderDetail();
+  toast(doc.findings?'Merge recorded — Findings Found → Path B.':'Merge recorded — No Findings → Path A.');
+}
+
+/* ══════════════════════════════════════════════
+   BOOLEAN FIELDS
+══════════════════════════════════════════════ */
+function setBool(field,val,cbId){
+  const doc=docs.find(d=>d.id===selId);
+  doc[field]=val;
+  renderSidebar(); renderDetail();
+  toast(`${field.replace(/_/g,' ')} updated.`);
+}
+
+/* ── Timestamp-only modal (reuses ov-stamp) ── */
+let tsCtx=null;
+function openTsModal(field, label, docId){
+  tsCtx={field, label, docId:docId||selId};
+  $('sm-name').textContent=label;
+  $('sm-hint').textContent='Record the exact date and time.';
+  $('sm-note').textContent='';
+  $('sm-passedby-grp').style.display='none';
+  $('sm-sentby-grp').style.display='none';
+  $('sm-dt').value=nowLocal();
+  $('sm-dt').classList.remove('err');
+  $('sme-dt').classList.remove('on');
+  $('sme-future').classList.remove('on');
+  openOv('ov-stamp');
+  // override confirm button behaviour via flag
+  tsCtx.mode='ts';
+}
+
+/* ══════════════════════════════════════════════
+   CREATE DOCUMENT
+══════════════════════════════════════════════ */
+function openCreate(){
+  $('f-entity').value=''; $('f-contact').value=''; $('f-email').value=''; $('f-remarks').value='';
+  $('f-emailVerif').checked=false; $('cb-lbl').className='cb-lbl'; $('cb-lbl').textContent='Email Verified';
+  $('f-created').textContent=fmt(new Date().toISOString());
+  clearErrs('ov-create'); openOv('ov-create'); $('f-entity').focus();
+}
+
+function onCbChange(cbId,lblId){
+  const ok=$(cbId).checked;
+  $(lblId).className='cb-lbl'+(ok?' ok':'');
+  $(lblId).textContent=ok?'✓ Email Verified':'Email Verified';
+}
+
+function saveDoc(){
+  clearErrs('ov-create'); let ok=true;
+  const entity=$('f-entity').value.trim();
+  const contact=$('f-contact').value.trim();
+  const email=$('f-email').value.trim();
+  if(!entity){markErr('f-entity','fe-entity');ok=false;}
+  if(!contact){markErr('f-contact','fe-contact');ok=false;}
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){markErr('f-email','fe-email');ok=false;}
+  if(!ok) return;
+  const doc={
+    id:genId(),entity,contact,email,
+    emailVerified:$('f-emailVerif').checked,
+    remarks:$('f-remarks').value.trim(),
+    createdAt:new Date().toISOString(),
+    stages:{},
+    findings:null,
+    mergeTs:null,
+    certOutcome:null,
+    certDecisionTs:null,
+    p2_notified_ts:null, p2_returned_ts:null,
+    p3_notified_ts:null, p3_returned_ts:null,
+  };
+  docs.unshift(doc);
+  closeOv('ov-create'); renderSidebar(); selDoc(doc.id);
+  toast(`Document for "${entity}" created.`);
+}
+
+/* ══════════════════════════════════════════════
+   EMAIL PREVIEW
+══════════════════════════════════════════════ */
+function openEmailPrev(type, docId){
+  emailPrevCtx={type, docId:docId||selId};
+  const doc=docs.find(d=>d.id===emailPrevCtx.docId);
+  const email=type==='verify'?($('f-email')?$('f-email').value.trim():''):doc?.email||'—';
+
+  let title='Email Preview', subj='', body='';
+
+  if(type==='verify'){
+    const entity=$('f-entity')?$('f-entity').value.trim()||'the applicant':'the applicant';
+    title='Verification Email Preview';
+    subj='Document Tracker — Email Verification';
+    body=`Dear ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm that this email address is associated with your application.<br><br>If you did not expect this message, please ignore it.<br><br>Thank you.`;
+  } else if(type==='p3a_notify'){
+    title='Notification — Approved & SOA';
+    subj='Document Tracker — Application Approved';
+    body=`Dear ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account (SOA) with the fees to be paid. Kindly settle the payment at your earliest convenience to proceed with the release of your Certificate.<br><br>For inquiries, please contact our office.<br><br>Thank you.`;
+  } else if(type==='p3b_notify'){
+    title='Notification — Notice of Disapproval';
+    subj='Document Tracker — Notice of Disapproval';
+    body=`Dear ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved.<br><br>Please refer to the attached Notice of Disapproval for the specific grounds. Your application documents are being returned to you.<br><br>For inquiries, please contact our office.<br><br>Thank you.`;
+  }
+
+  $('ep-title').textContent=title;
+  $('ep-to').textContent=email||'—';
+  $('ep-subj').textContent=subj;
+  $('ep-body').innerHTML=body;
+  openOv('ov-emailprev');
+}
+
+function confirmEmailSent(){
+  if(!emailPrevCtx) return;
+  const {type}=emailPrevCtx;
+  closeOv('ov-emailprev');
+  if(type==='verify') toast('Verification email marked as sent. Check "Email Verified" to confirm.');
+  else toast('Email marked as sent. Check the notification checkbox to confirm.');
+  emailPrevCtx=null;
+}
+
+/* ══════════════════════════════════════════════
+   STAMP MODAL
+══════════════════════════════════════════════ */
+const TRACK_MAP={
+  p1_tech: P1_TECH, p1_fin: P1_FIN, p1_legal: P1_LEGAL,
+  p2a: P2A, p2b: P2B, p3a: P3A, p3b: P3B,
+};
+
+function openStamp(docId, track, idx){
+  const defs=TRACK_MAP[track];
+  if(!defs) return;
+  const stageDef=defs[idx];
+  if(!stageDef) return;
+  stampCtx={docId,track,idx,stageDef};
+
+  $('sm-name').textContent=stageDef.label;
+  $('sm-hint').textContent=stageDef.hint||'Set the date and time this stage was reached.';
+  $('sm-note').textContent=stageDef.isApproval?'After recording, you will select Approved or Disapproved.':'';
+
+  const pbg=$('sm-passedby-grp');
+  pbg.style.display=stageDef.passedBy?'block':'none';
+  if(stageDef.passedBy){$('sm-passedby').value='';$('sm-passedby').classList.remove('err');$('sme-passedby').classList.remove('on');}
+
+  const sbg=$('sm-sentby-grp');
+  sbg.style.display=stageDef.sentBy?'block':'none';
+  if(stageDef.sentBy){$('sm-sentby').value='';$('sm-sentby').classList.remove('err');$('sme-sentby').classList.remove('on');}
+
+  $('sm-dt').value=nowLocal();
+  $('sm-dt').classList.remove('err');
+  $('sme-dt').classList.remove('on');
+  $('sme-future').classList.remove('on');
+  openOv('ov-stamp');
+}
+
+function doStamp(){
+  // Handle plain timestamp modal (tsCtx mode)
+  if(tsCtx&&tsCtx.mode==='ts'){
+    const dt=$('sm-dt').value;
+    if(!dt){markErr('sm-dt','sme-dt');return;}
+    if(new Date(dt)>new Date()){markErr('sm-dt','sme-future');return;}
+    const doc=docs.find(d=>d.id===tsCtx.docId);
+    doc[tsCtx.field]=new Date(dt).toISOString();
+    closeOv('ov-stamp');
+    tsCtx=null;
+    renderSidebar(); renderDetail();
+    toast('Timestamp recorded.');
+    return;
+  }
+
+  if(!stampCtx) return;
+  let ok=true;
+  if(stampCtx.stageDef.passedBy&&!$('sm-passedby').value.trim()){markErr('sm-passedby','sme-passedby');ok=false;}
+  if(stampCtx.stageDef.sentBy&&!$('sm-sentby').value.trim()){markErr('sm-sentby','sme-sentby');ok=false;}
+  const dt=$('sm-dt').value;
+  if(!dt){markErr('sm-dt','sme-dt');ok=false;}
+  else if(new Date(dt)>new Date()){markErr('sm-dt','sme-future');ok=false;}
+  if(!ok) return;
+
+  const doc=docs.find(d=>d.id===stampCtx.docId);
+  const entry={stampedAt:new Date(dt).toISOString()};
+  if(stampCtx.stageDef.passedBy) entry.passedBy=$('sm-passedby').value.trim();
+  if(stampCtx.stageDef.sentBy)   entry.sentBy=$('sm-sentby').value.trim();
+  doc.stages[stampCtx.stageDef.key]=entry;
+
+  closeOv('ov-stamp');
+  renderSidebar(); renderDetail();
+  toast(`"${stampCtx.stageDef.label}" recorded.`);
+
+  if(stampCtx.stageDef.isApproval) setTimeout(()=>openApprovalModal(stampCtx.docId),400);
+  stampCtx=null;
+}
+
+/* ══════════════════════════════════════════════
+   APPROVAL MODAL
+══════════════════════════════════════════════ */
+let approvalDocId=null, approvalInlineDt=null;
+function openApprovalModal(docId){
+  approvalDocId=docId; approvalPick=null;
+  // Capture inline timestamp if present
+  const inlineDt=$('approval-dt');
+  approvalInlineDt=inlineDt?inlineDt.value:null;
+  $('appr-yes').className='appr-opt';
+  $('appr-no').className='appr-opt';
+  $('appr-err').classList.remove('on');
+  openOv('ov-approval');
+}
+function pickApproval(v){
+  approvalPick=v;
+  $('appr-yes').className='appr-opt'+(v==='approved'?' pick-appr':'');
+  $('appr-no').className='appr-opt'+(v==='disapproved'?' pick-disappr':'');
+  $('appr-err').classList.remove('on');
+}
+function confirmApproval(){
+  if(!approvalPick){$('appr-err').classList.add('on');return;}
+  // Try reading timestamp from inline field first, fallback to modal
+  const dt=approvalInlineDt;
+  if(dt&&new Date(dt)>new Date()){
+    $('appr-err').classList.add('on');
+    $('appr-err').textContent='Decision timestamp cannot be in the future.';
+    return;
+  }
+  const doc=docs.find(d=>d.id===approvalDocId);
+  doc.certOutcome=approvalPick;
+  doc.certDecisionTs=dt?new Date(dt).toISOString():new Date().toISOString();
+  closeOv('ov-approval');
+  renderSidebar(); renderDetail();
+  toast(`Certificate ${approvalPick} — proceeding to Phase 3${approvalPick==='approved'?'A':'B'}.`);
+}
+
+/* ══════════════════════════════════════════════
+   METRICS
+══════════════════════════════════════════════ */
+function workHours(a,b){
+  if(!a||!b) return 0;
+  let s=new Date(a),e=new Date(b),h=0;
+  if(e<=s) return 0;
+  let c=new Date(s);
+  while(c<e){
+    const day=c.getDay();
+    if(day>=1&&day<=5){
+      const ws=new Date(c);ws.setHours(8,0,0,0);
+      const we=new Date(c);we.setHours(17,0,0,0);
+      const ss=c<ws?ws:c,se=e<we?e:we;
+      if(se>ss) h+=(se-ss)/3600000;
+    }
+    c=new Date(c);c.setHours(0,0,0,0);c.setDate(c.getDate()+1);
+  }
+  return Math.round(h*10)/10;
+}
+
+function renderMetrics(){
+  const total=docs.length;
+  const completed=docs.filter(d=>isComplete(d)).length;
+  const closed=docs.filter(d=>isClosed(d)).length;
+  const approved=docs.filter(d=>d.certOutcome==='approved').length;
+  const disapproved=docs.filter(d=>d.certOutcome==='disapproved').length;
+
+  const times={},counts={};
+  docs.forEach(doc=>{
+    ALL_STAMPABLE.forEach((s,i)=>{
+      if(!doc.stages[s.key]) return;
+      const ts=doc.stages[s.key].stampedAt;
+      let prevTs=doc.createdAt;
+      for(let j=i-1;j>=0;j--){
+        const ps=ALL_STAMPABLE[j];
+        if(doc.stages[ps.key]){prevTs=doc.stages[ps.key].stampedAt;break;}
+      }
+      const h=workHours(prevTs,ts);
+      times[s.key]=(times[s.key]||0)+h;
+      counts[s.key]=(counts[s.key]||0)+1;
+    });
+  });
+
+  let bnKey=null,bnAvg=0;
+  ALL_STAMPABLE.forEach(s=>{
+    if(!counts[s.key]) return;
+    const avg=times[s.key]/counts[s.key];
+    if(avg>bnAvg){bnAvg=avg;bnKey=s.key;}
+  });
+  const bnStage=ALL_STAMPABLE.find(s=>s.key===bnKey);
+  const maxAvg=Math.max(1,...ALL_STAMPABLE.map(s=>counts[s.key]?times[s.key]/counts[s.key]:0));
+
+  const stblRows=ALL_STAMPABLE.map(s=>{
+    const avg=counts[s.key]?(times[s.key]/counts[s.key]).toFixed(1):null;
+    const pct=avg?Math.round(parseFloat(avg)/maxAvg*100):0;
+    const cls=bnKey===s.key?'bar-slow':pct<30?'bar-fast':'bar-mid';
+    return `<div class="stbl-row">
+      <div style="font-size:11px;color:var(--muted)">${s.label}</div>
+      <div style="font-size:11px;color:${avg?'var(--text)':'var(--dim)'}">${avg?avg+' hrs':'—'}</div>
+      <div><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>
+      <div style="font-size:11px;color:var(--dim)">${counts[s.key]||0}</div>
+    </div>`;
+  }).join('');
+
+  $('metricsBody').innerHTML=`
+    <div class="sec-hd phase" style="margin-bottom:18px">Overview</div>
+    <div class="m-grid">
+      <div class="m-card"><div class="m-lbl">Total Documents</div><div class="m-val m-gold">${total}</div><div class="m-sub">All records</div></div>
+      <div class="m-card"><div class="m-lbl">Complete</div><div class="m-val m-green">${completed}</div><div class="m-sub">Certificate released</div></div>
+      <div class="m-card"><div class="m-lbl">Closed (Dead-end)</div><div class="m-val m-red">${closed}</div><div class="m-sub">Returned to applicant</div></div>
+    </div>
+    <div class="m-grid">
+      <div class="m-card"><div class="m-lbl">Approved</div><div class="m-val m-green">${approved}</div><div class="m-sub">Certificate approved by OC</div></div>
+      <div class="m-card"><div class="m-lbl">Disapproved</div><div class="m-val m-red">${disapproved}</div><div class="m-sub">Certificate disapproved</div></div>
+      <div class="m-card"><div class="m-lbl">In Progress</div><div class="m-val">${total-completed-closed}</div><div class="m-sub">Active documents</div></div>
+    </div>
+
+    <div class="sec-hd phase" style="margin-bottom:14px">Bottleneck Stage</div>
+    ${bnStage
+      ?`<div class="bottleneck"><div class="bn-ic">⚠</div><div><div class="bn-lbl">Slowest Stage</div><div class="bn-stage">${bnStage.label}</div><div class="bn-time">Average: ${bnAvg.toFixed(1)} working hours (Mon–Fri, 8AM–5PM)</div></div></div>`
+      :`<div class="bottleneck"><div class="bn-ic">⬡</div><div><div class="bn-lbl">Bottleneck Stage</div><div class="bn-stage" style="color:var(--muted);font-size:15px">No data yet</div><div class="bn-time">Stamp stages to see timing data</div></div></div>`
+    }
+
+    <div class="sec-hd phase" style="margin-bottom:14px">Average Time per Stage</div>
+    <div class="stage-tbl">
+      <div class="stbl-hd"><div>Stage</div><div>Avg Time</div><div>Distribution</div><div>Docs</div></div>
+      ${stblRows||`<div style="padding:20px 16px;text-align:center;font-size:12px;color:var(--dim)">No stage data yet.</div>`}
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════
+   MODAL UTILS
+══════════════════════════════════════════════ */
+function openOv(id){$(id).classList.add('open');}
+function closeOv(id){
+  $(id).classList.remove('open');
+  if(id==='ov-stamp'&&tsCtx) tsCtx=null;
+}
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)closeOv(el.id);}));
+
+function clearErrs(ovId){
+  const m=$(ovId);
+  m.querySelectorAll('.ferr').forEach(el=>el.classList.remove('on'));
+  m.querySelectorAll('.fi,.fs').forEach(el=>el.classList.remove('err'));
+}
+function markErr(fId,eId){$(fId).classList.add('err');$(eId).classList.add('on');}
+document.querySelectorAll('.fi,.fs').forEach(el=>['input','change'].forEach(ev=>el.addEventListener(ev,()=>el.classList.remove('err'))));
+</script>
+</body>
+</html>
