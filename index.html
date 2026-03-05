@@ -1,283 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Document Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Tracker</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-<!-- ══ PIN ══ -->
-<div id="pg-pin" class="page active">
-  <div class="pin-wrap">
-    <div class="pin-logo">Document <em>Tracker</em></div>
-    <div class="pin-tagline">Enter PIN to access</div>
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-      <div class="pin-dot"></div><div class="pin-dot"></div>
+  <!-- ══ GLOBAL SIDEBAR (shared across pages) ══ -->
+  <div class="sb-backdrop" id="sbBackdrop" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="globalSidebar">
+    <div class="sb-hd"><span class="sb-hd-title">Documents</span><span class="doc-count" id="docCount">0</span></div>
+    <div class="sb-search"><input id="sbSearch" type="text" placeholder="Search by entity name…"></div>
+    <div class="doc-list" id="docList">
+      <div class="sb-empty">
+        <div class="sb-empty-ic">⬡</div>No documents yet.<br>Create one to get started.
+      </div>
     </div>
-    <div class="pin-pad">
-      <button class="pin-key" data-v="1">1</button><button class="pin-key" data-v="2">2</button><button class="pin-key" data-v="3">3</button>
-      <button class="pin-key" data-v="4">4</button><button class="pin-key" data-v="5">5</button><button class="pin-key" data-v="6">6</button>
-      <button class="pin-key" data-v="7">7</button><button class="pin-key" data-v="8">8</button><button class="pin-key" data-v="9">9</button>
-      <button class="pin-key blank"></button><button class="pin-key" data-v="0">0</button><button class="pin-key del" data-v="del">⌫</button>
-    </div>
-    <div class="pin-err" id="pinErr"></div>
-  </div>
-</div>
+  </aside>
 
-<!-- ══ TRACKER ══ -->
-<div id="pg-tracker" class="page">
-  <header class="hdr">
-    <div class="hdr-left"><span class="hdr-logo">Document <em>Tracker</em></span><span class="hdr-tag">Office</span></div>
-    <nav class="hdr-nav">
-      <button class="nav-pill on" onclick="goTo('tracker')">Tracker</button>
-      <button class="nav-pill" onclick="goTo('metrics')">Metrics</button>
-    </nav>
-    <div class="hdr-right">
-      <div class="theme-switcher">
-        <button class="theme-btn" data-theme="dark"    onclick="applyTheme('dark')"  title="Dark">Dark</button>
-        <button class="theme-btn" data-theme="light"   onclick="applyTheme('light')" title="Light">Light</button>
-        <button class="theme-btn" data-theme="slate"   onclick="applyTheme('slate')" title="Slate">Slate</button>
-        <button class="theme-btn" data-theme="warm"    onclick="applyTheme('warm')"  title="Warm">Warm</button>
+  <!-- ══ PIN ══ -->
+  <div id="pg-pin" class="page active">
+    <div class="pin-wrap">
+      <div class="pin-logo">Document <em>Tracker</em></div>
+      <div class="pin-tagline">Enter PIN to access</div>
+      <div class="pin-dots" id="pinDots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
-      <button class="btn btn-primary btn-sm" onclick="openCreate()">+ New Document</button>
-    </div>
-  </header>
-  <div class="tracker-body">
-    <aside class="sidebar">
-      <div class="sb-hd"><span class="sb-hd-title">Documents</span><span class="doc-count" id="docCount">0</span></div>
-      <div class="sb-search"><input id="sbSearch" type="text" placeholder="Search by entity name…"></div>
-      <div class="doc-list" id="docList"><div class="sb-empty"><div class="sb-empty-ic">⬡</div>No documents yet.<br>Create one to get started.</div></div>
-    </aside>
-    <div class="main-panel">
-      <div class="empty-view" id="emptyView">
-        <div class="empty-ic">⬡</div>
-        <p>Select a document to view details</p>
-        <span>or create a new one to get started</span>
+      <div class="pin-pad">
+        <button class="pin-key" data-v="1">1</button><button class="pin-key" data-v="2">2</button><button
+          class="pin-key" data-v="3">3</button>
+        <button class="pin-key" data-v="4">4</button><button class="pin-key" data-v="5">5</button><button
+          class="pin-key" data-v="6">6</button>
+        <button class="pin-key" data-v="7">7</button><button class="pin-key" data-v="8">8</button><button
+          class="pin-key" data-v="9">9</button>
+        <button class="pin-key blank"></button><button class="pin-key" data-v="0">0</button><button class="pin-key del"
+          data-v="del">⌫</button>
       </div>
-      <div class="doc-detail" id="docDetail"></div>
+      <div class="pin-err" id="pinErr"></div>
     </div>
   </div>
-</div>
 
-<!-- ══ METRICS ══ -->
-<div id="pg-metrics" class="page">
-  <header class="hdr">
-    <div class="hdr-left"><span class="hdr-logo">Document <em>Tracker</em></span><span class="hdr-tag">Office</span></div>
-    <nav class="hdr-nav">
-      <button class="nav-pill" onclick="goTo('tracker')">Tracker</button>
-      <button class="nav-pill on" onclick="goTo('metrics')">Metrics</button>
-    </nav>
-    <div class="hdr-right">
-      <div class="theme-switcher">
-        <button class="theme-btn" data-theme="dark"    onclick="applyTheme('dark')"  title="Dark">Dark</button>
-        <button class="theme-btn" data-theme="light"   onclick="applyTheme('light')" title="Light">Light</button>
-        <button class="theme-btn" data-theme="slate"   onclick="applyTheme('slate')" title="Slate">Slate</button>
-        <button class="theme-btn" data-theme="warm"    onclick="applyTheme('warm')"  title="Warm">Warm</button>
+  <!-- ══ TRACKER ══ -->
+  <div id="pg-tracker" class="page">
+    <header class="hdr">
+      <div class="hdr-left">
+        <button class="sb-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <span class="hdr-logo">Document <em>Tracker</em></span><span class="hdr-tag">Office</span>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+      <nav class="hdr-nav">
+        <button class="nav-pill on" onclick="goTo('tracker')">Tracker</button>
+        <button class="nav-pill" onclick="goTo('metrics')">Metrics</button>
+      </nav>
+      <div class="hdr-right">
+        <div class="theme-switcher">
+          <button class="theme-btn" data-theme="light" onclick="applyTheme('light')" title="Light">Light</button>
+          <button class="theme-btn" data-theme="dark" onclick="applyTheme('dark')" title="Dark">Dark</button>
+          <button class="theme-btn" data-theme="slate" onclick="applyTheme('slate')" title="slate">Slate</button>
+          <button class="theme-btn" data-theme="warm" onclick="applyTheme('warm')" title="Warm">Warm</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+        <button class="btn btn-primary btn-sm" onclick="openCreate()"><span class="btn-new-label">+ New
+            Document</span><span class="btn-new-icon">+</span></button>
+      </div>
+    </header>
+    <div class="tracker-body">
+      <div class="main-panel">
+        <div class="empty-view" id="emptyView">
+          <div class="empty-ic">⬡</div>
+          <p>Select a document to view details</p>
+          <span>or create a new one to get started</span>
+        </div>
+        <div class="doc-detail" id="docDetail"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ METRICS ══ -->
+  <div id="pg-metrics" class="page">
+    <header class="hdr">
+      <div class="hdr-left">
+        <button class="sb-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <span class="hdr-logo">Document <em>Tracker</em></span><span class="hdr-tag">Office</span>
+      </div>
+      <nav class="hdr-nav">
+        <button class="nav-pill" onclick="goTo('tracker')">Tracker</button>
+        <button class="nav-pill on" onclick="goTo('metrics')">Metrics</button>
+      </nav>
+      <div class="hdr-right">
+        <div class="theme-switcher">
+          <button class="theme-btn" data-theme="light" onclick="applyTheme('light')" title="Light">Light</button>
+          <button class="theme-btn" data-theme="dark" onclick="applyTheme('dark')" title="Dark">Dark</button>
+          <button class="theme-btn" data-theme="slate" onclick="applyTheme('slate')" title="slate">Slate</button>
+          <button class="theme-btn" data-theme="warm" onclick="applyTheme('warm')" title="Warm">Warm</button>
+        </div>
+       <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+      <button class="btn btn-primary btn-sm" onclick="openCreate()"><span class="btn-new-label">+ New Document</span><span class="btn-new-icon">+</span></button>
     </div>
   </header>
   <div class="metrics-body" id="metricsBody"></div>
-</div>
+  </div>
 
-<!-- ══ MODALS ══ -->
+  <nav class="mobile-nav" id="mobileNav" style="display:none">
+    <button class="on" id="mn-tracker" onclick="goTo('tracker')">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+      Tracker
+    </button>
+    <button id="mn-metrics" onclick="goTo('metrics')">
+      <svg viewBox="0 0 24 24">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      Metrics
+    </button>
 
-<!-- Create -->
-<div class="overlay" id="ov-create">
-  <div class="modal w560">
-    <div class="m-hd"><div><h2>New Document</h2><p>Fields marked * are required</p></div><button class="m-close" onclick="closeOv('ov-create')">✕</button></div>
-    <div class="m-body">
-      <div class="fg2">
-        <div class="fg">
-          <div class="fl">Entity Name <span class="req">*</span></div>
-          <input type="text" id="f-entity" class="fi" placeholder="Full name of person or company" maxlength="120" autocomplete="off">
-          <div class="ferr" id="fe-entity">Entity name is required.</div>
+    <button onclick="openCreate()">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="16" />
+        <line x1="8" y1="12" x2="16" y2="12" />
+      </svg>
+      New
+    </button>
+    <button onclick="doLock()">
+      <svg viewBox="0 0 24 24">
+        <rect x="5" y="11" width="14" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>
+      Lock
+    </button>
+
+    <button onclick="cycleTheme()" id="mn-theme">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+      Theme
+    </button>
+  </nav>
+
+  <!-- ══ MODALS ══ -->
+
+  <!-- Create -->
+  <div class="overlay" id="ov-create">
+    <div class="modal w560">
+      <div class="m-hd">
+        <div>
+          <h2>New Document</h2>
+          <p>Fields marked * are required</p>
+        </div><button class="m-close" onclick="closeOv('ov-create')">✕</button>
+      </div>
+      <div class="m-body">
+        <div class="fg2">
+          <div class="fg">
+            <div class="fl">Entity Name <span class="req">*</span></div>
+            <input type="text" id="f-entity" class="fi" placeholder="Company or Entity Name" maxlength="120"
+              autocomplete="off">
+            <div class="ferr" id="fe-entity">Entity name is required.</div>
+          </div>
+          <div class="fg">
+            <div class="fl">Contact Person <span class="req">*</span></div>
+            <input type="text" id="f-contact" class="fi" placeholder="Name of contact person" maxlength="120"
+              autocomplete="off">
+            <div class="ferr" id="fe-contact">Contact person is required.</div>
+          </div>
         </div>
         <div class="fg">
-          <div class="fl">Contact Person <span class="req">*</span></div>
-          <input type="text" id="f-contact" class="fi" placeholder="Name of contact person" maxlength="120" autocomplete="off">
-          <div class="ferr" id="fe-contact">Contact person is required.</div>
+          <div class="fl">Email Address <span class="req">*</span></div>
+          <div class="email-row">
+            <input type="email" id="f-email" class="fi" placeholder="client@email.com" autocomplete="off">
+            <button class="btn btn-ghost btn-sm" onclick="openEmailPrev('verify')">Send Verification</button>
+          </div>
+          <div class="ferr" id="fe-email">A valid email address is required.</div>
+          <div class="cb-row">
+            <input type="checkbox" id="f-emailVerif" onchange="onCbChange()">
+            <label class="cb-lbl" id="cb-lbl" for="f-emailVerif">Email Verified</label>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fl">Remarks</div><textarea id="f-remarks" class="fta" placeholder="Optional notes…"
+            maxlength="500"></textarea>
+        </div>
+        <div class="fdiv"></div>
+        <div class="fg">
+          <div class="fl">Date &amp; Time Created</div>
+          <div class="fro" id="f-created">— set automatically —</div>
         </div>
       </div>
-      <div class="fg">
-        <div class="fl">Email Address <span class="req">*</span></div>
-        <div class="email-row">
-          <input type="email" id="f-email" class="fi" placeholder="client@email.com" autocomplete="off">
-          <button class="btn btn-ghost btn-sm" onclick="openEmailPrev('verify')">Send Verification</button>
-        </div>
-        <div class="ferr" id="fe-email">A valid email address is required.</div>
-        <div class="cb-row">
-          <input type="checkbox" id="f-emailVerif" onchange="onCbChange()">
-          <label class="cb-lbl" id="cb-lbl" for="f-emailVerif">Email Verified</label>
+      <div class="m-ft">
+        <span class="m-ft-note">Timestamp set automatically on save.</span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-create')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveDoc()">Create Document</button>
         </div>
       </div>
-      <div class="fg"><div class="fl">Remarks</div><textarea id="f-remarks" class="fta" placeholder="Optional notes…" maxlength="500"></textarea></div>
-      <div class="fdiv"></div>
-      <div class="fg"><div class="fl">Date &amp; Time Created</div><div class="fro" id="f-created">— set automatically —</div></div>
-    </div>
-    <div class="m-ft">
-      <span class="m-ft-note">Timestamp set automatically on save.</span>
-      <div class="m-ft-btns">
-        <button class="btn btn-ghost" onclick="closeOv('ov-create')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveDoc()">Create Document</button>
-      </div>
     </div>
   </div>
-</div>
 
-<!-- Stamp -->
-<div class="overlay" id="ov-stamp">
-  <div class="modal">
-    <div class="m-hd"><div><h2>Record Stage</h2><p id="sm-subtitle">Confirm timestamp</p></div><button class="m-close" onclick="closeOv('ov-stamp')">✕</button></div>
-    <div class="m-body">
-      <div class="stmp-info"><strong id="sm-name"></strong><span id="sm-hint"></span></div>
-      <div class="fg" id="sm-passedby-grp" style="display:none">
-        <div class="fl">Passed By <span class="req">*</span></div>
-        <input type="text" id="sm-passedby" class="fi" placeholder="Name of person who passed it" maxlength="80">
-        <div class="ferr" id="sme-passedby">Required.</div>
+  <!-- Stamp -->
+  <div class="overlay" id="ov-stamp">
+    <div class="modal">
+      <div class="m-hd">
+        <div>
+          <h2>Record Stage</h2>
+          <p id="sm-subtitle">Confirm timestamp</p>
+        </div><button class="m-close" onclick="closeOv('ov-stamp')">✕</button>
       </div>
-      <div class="fg" id="sm-sentby-grp" style="display:none">
-        <div class="fl">Sent By (CDO II) <span class="req">*</span></div>
-        <input type="text" id="sm-sentby" class="fi" placeholder="Name of CDO II" maxlength="80">
-        <div class="ferr" id="sme-sentby">Required.</div>
-      </div>
-      <div class="fg">
-        <div class="fl">Date &amp; Time <span class="req">*</span></div>
-        <input type="datetime-local" id="sm-dt" class="fi">
-        <div class="ferr" id="sme-dt">Required.</div>
-        <div class="ferr" id="sme-future">Cannot be a future time.</div>
-      </div>
-    </div>
-    <div class="m-ft">
-      <span class="m-ft-note" id="sm-note"></span>
-      <div class="m-ft-btns">
-        <button class="btn btn-ghost" onclick="closeOv('ov-stamp')">Cancel</button>
-        <button class="btn btn-primary" onclick="doStamp()">Record Timestamp</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Pre-assessment decision -->
-<div class="overlay" id="ov-preassess">
-  <div class="modal">
-    <div class="m-hd"><div><h2>Pre-Assessment Result</h2><p>Record timestamp and outcome</p></div><button class="m-close" onclick="closeOv('ov-preassess')">✕</button></div>
-    <div class="m-body">
-      <div class="fg">
-        <div class="fl">Date &amp; Time <span class="req">*</span></div>
-        <input type="datetime-local" id="pa-dt" class="fi">
-        <div class="ferr" id="pae-dt">Required.</div>
-        <div class="ferr" id="pae-future">Cannot be a future time.</div>
-      </div>
-      <div class="fg">
-        <div class="fl">Result <span class="req">*</span></div>
-        <div class="preassess-grid">
-          <div class="pa-opt" id="pa-complete" onclick="pickPA('complete')"><div class="pa-lbl a">Complete</div><div class="appr-desc">Proceed to Phase 1A</div></div>
-          <div class="pa-opt" id="pa-incomplete" onclick="pickPA('incomplete')"><div class="pa-lbl b">Incomplete</div><div class="appr-desc">Records assessment timestamp only — return is a separate step</div></div>
+      <div class="m-body">
+        <div class="stmp-info"><strong id="sm-name"></strong><span id="sm-hint"></span></div>
+        <div class="fg" id="sm-passedby-grp" style="display:none">
+          <div class="fl">Passed By <span class="req">*</span></div>
+          <input type="text" id="sm-passedby" class="fi" placeholder="Name of person who passed it" maxlength="80">
+          <div class="ferr" id="sme-passedby">Required.</div>
         </div>
-        <div class="ferr" id="pae-result">Please select a result.</div>
-      </div>
-    </div>
-    <div class="m-ft">
-      <span class="m-ft-note"></span>
-      <div class="m-ft-btns">
-        <button class="btn btn-ghost" onclick="closeOv('ov-preassess')">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmPA()">Confirm</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Approval decision -->
-<div class="overlay" id="ov-approval">
-  <div class="modal">
-    <div class="m-hd"><div><h2>Certificate Decision</h2><p>Record receipt and outcome (CDO II)</p></div><button class="m-close" onclick="closeOv('ov-approval')">✕</button></div>
-    <div class="m-body">
-      <div class="fg">
-        <div class="fl">Date &amp; Time Received <span class="req">*</span></div>
-        <input type="datetime-local" id="appr-dt" class="fi">
-        <div class="ferr" id="appre-dt">Required.</div>
-        <div class="ferr" id="appre-future">Cannot be a future time.</div>
-      </div>
-      <div class="fg">
-        <div class="fl">Outcome <span class="req">*</span></div>
-        <div class="appr-grid">
-          <div class="appr-opt" id="appr-yes" onclick="pickAppr('approved')"><div class="appr-lbl a">Approved</div><div class="appr-desc">Proceed to Phase 5A → 6A</div></div>
-          <div class="appr-opt" id="appr-no" onclick="pickAppr('disapproved')"><div class="appr-lbl b">Disapproved</div><div class="appr-desc">Proceed to Phase 5B → 6B</div></div>
+        <div class="fg" id="sm-sentby-grp" style="display:none">
+          <div class="fl">Sent By (CDO II) <span class="req">*</span></div>
+          <input type="text" id="sm-sentby" class="fi" placeholder="Name of CDO II" maxlength="80">
+          <div class="ferr" id="sme-sentby">Required.</div>
         </div>
-        <div class="ferr" id="appre-result">Please select an outcome.</div>
+        <div class="fg">
+          <div class="fl">Date &amp; Time <span class="req">*</span></div>
+          <input type="datetime-local" id="sm-dt" class="fi">
+          <div class="ferr" id="sme-dt">Required.</div>
+          <div class="ferr" id="sme-future">Cannot be a future time.</div>
+        </div>
       </div>
-    </div>
-    <div class="m-ft">
-      <span class="m-ft-note"></span>
-      <div class="m-ft-btns">
-        <button class="btn btn-ghost" onclick="closeOv('ov-approval')">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmAppr()">Confirm</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Email Preview -->
-<div class="overlay" id="ov-emailprev">
-  <div class="modal">
-    <div class="m-hd"><div><h2 id="ep-title">Email Preview</h2><p>Review before sending</p></div><button class="m-close" onclick="closeOv('ov-emailprev')">✕</button></div>
-    <div class="m-body">
-      <div class="email-prev">
-        <div class="ep-field">To</div><div class="ep-val" id="ep-to">—</div>
-        <div class="ep-field">Subject</div><div class="ep-val" id="ep-subj">—</div>
-        <div class="ep-body" id="ep-body">—</div>
-      </div>
-    </div>
-    <div class="m-ft">
-      <span class="m-ft-note">Sending requires backend setup.</span>
-      <div class="m-ft-btns">
-        <button class="btn btn-ghost" onclick="closeOv('ov-emailprev')">Close</button>
-        <button class="btn btn-primary" onclick="closeOv('ov-emailprev')">Mark as Sent</button>
+      <div class="m-ft">
+        <span class="m-ft-note" id="sm-note"></span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-stamp')">Cancel</button>
+          <button class="btn btn-primary" onclick="doStamp()">Record Timestamp</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Redact Confirm Modal -->
-<div class="overlay" id="ov-redact">
-  <div class="modal">
-    <div class="m-hd"><div><h2 style="color:var(--red)">⚠ Redact Stage</h2><p>This will remove the timestamp and reset the stage to unstamped</p></div><button class="m-close" onclick="closeOv('ov-redact')">✕</button></div>
-    <div class="m-body">
-      <div class="stmp-info" style="border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.04)">
-        <strong id="redact-name" style="color:var(--red)"></strong>
-        <span id="redact-hint"></span>
+  <!-- Pre-assessment decision -->
+  <div class="overlay" id="ov-preassess">
+    <div class="modal">
+      <div class="m-hd">
+        <div>
+          <h2>Pre-Assessment Result</h2>
+          <p>Record timestamp and outcome</p>
+        </div><button class="m-close" onclick="closeOv('ov-preassess')">✕</button>
       </div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.7;padding:10px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:4px">
-        Are you sure? This action <strong style="color:var(--red)">cannot be undone</strong>. The timestamp will be permanently removed and the stage will return to unstamped.
+      <div class="m-body">
+        <div class="fg">
+          <div class="fl">Date &amp; Time <span class="req">*</span></div>
+          <input type="datetime-local" id="pa-dt" class="fi">
+          <div class="ferr" id="pae-dt">Required.</div>
+          <div class="ferr" id="pae-future">Cannot be a future time.</div>
+        </div>
+        <div class="fg">
+          <div class="fl">Result <span class="req">*</span></div>
+          <div class="preassess-grid">
+            <div class="pa-opt" id="pa-complete" onclick="pickPA('complete')">
+              <div class="pa-lbl a">Complete</div>
+              <div class="appr-desc">Proceed to Phase 1A</div>
+            </div>
+            <div class="pa-opt" id="pa-incomplete" onclick="pickPA('incomplete')">
+              <div class="pa-lbl b">Incomplete</div>
+              <div class="appr-desc">Records assessment timestamp only — return is a separate step</div>
+            </div>
+          </div>
+          <div class="ferr" id="pae-result">Please select a result.</div>
+        </div>
       </div>
-    </div>
-    <div class="m-ft">
-      <span class="m-ft-note">This action is irreversible.</span>
-      <div class="m-ft-btns">
-        <button class="btn btn-ghost" onclick="closeOv('ov-redact')">Cancel — Keep Timestamp</button>
-        <button class="btn" style="background:var(--red);border-color:var(--red);color:#fff" onclick="doRedact()">Yes, Redact This Stage</button>
+      <div class="m-ft">
+        <span class="m-ft-note"></span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-preassess')">Cancel</button>
+          <button class="btn btn-primary" onclick="confirmPA()">Confirm</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Summary -->
-<div class="overlay" id="ov-summary">
-  <div class="modal w640">
-    <div class="m-hd"><div><h2 id="sum-title">Document Summary</h2><p>Stage-by-stage breakdown &amp; statistics</p></div><button class="m-close" onclick="closeOv('ov-summary')">✕</button></div>
-    <div class="m-body" id="sum-body"></div>
-    <div class="m-ft"><span class="m-ft-note">Working hours: Mon–Fri, 8AM–5PM only.</span><div class="m-ft-btns"><button class="btn btn-ghost" onclick="closeOv('ov-summary')">Close</button></div></div>
+  <!-- Approval decision -->
+  <div class="overlay" id="ov-approval">
+    <div class="modal">
+      <div class="m-hd">
+        <div>
+          <h2>Certificate Decision</h2>
+          <p>Record receipt and outcome (CDO II)</p>
+        </div><button class="m-close" onclick="closeOv('ov-approval')">✕</button>
+      </div>
+      <div class="m-body">
+        <div class="fg">
+          <div class="fl">Date &amp; Time Received <span class="req">*</span></div>
+          <input type="datetime-local" id="appr-dt" class="fi">
+          <div class="ferr" id="appre-dt">Required.</div>
+          <div class="ferr" id="appre-future">Cannot be a future time.</div>
+        </div>
+        <div class="fg">
+          <div class="fl">Outcome <span class="req">*</span></div>
+          <div class="appr-grid">
+            <div class="appr-opt" id="appr-yes" onclick="pickAppr('approved')">
+              <div class="appr-lbl a">Approved</div>
+              <div class="appr-desc">Proceed to Phase 5A → 6A</div>
+            </div>
+            <div class="appr-opt" id="appr-no" onclick="pickAppr('disapproved')">
+              <div class="appr-lbl b">Disapproved</div>
+              <div class="appr-desc">Proceed to Phase 5B → 6B</div>
+            </div>
+          </div>
+          <div class="ferr" id="appre-result">Please select an outcome.</div>
+        </div>
+      </div>
+      <div class="m-ft">
+        <span class="m-ft-note"></span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-approval')">Cancel</button>
+          <button class="btn btn-primary" onclick="confirmAppr()">Confirm</button>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
+  <!-- Email Preview -->
+  <div class="overlay" id="ov-emailprev">
+    <div class="modal">
+      <div class="m-hd">
+        <div>
+          <h2 id="ep-title">Email Preview</h2>
+          <p>Review before sending</p>
+        </div><button class="m-close" onclick="closeOv('ov-emailprev')">✕</button>
+      </div>
+      <div class="m-body">
+        <div class="email-prev">
+          <div class="ep-field">To</div>
+          <div class="ep-val" id="ep-to">—</div>
+          <div class="ep-field">Subject</div>
+          <div class="ep-val" id="ep-subj">—</div>
+          <div class="ep-body" id="ep-body">—</div>
+        </div>
+      </div>
+      <div class="m-ft">
+        <span class="m-ft-note">Sending requires backend setup.</span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-emailprev')">Close</button>
+          <button class="btn btn-primary" onclick="closeOv('ov-emailprev')">Mark as Sent</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<script src="scripts.js"></script>
+  <!-- Redact Confirm Modal -->
+  <div class="overlay" id="ov-redact">
+    <div class="modal">
+      <div class="m-hd">
+        <div>
+          <h2 style="color:var(--red)">⚠ Redact Stage</h2>
+          <p>This will remove the timestamp and reset the stage to unstamped</p>
+        </div><button class="m-close" onclick="closeOv('ov-redact')">✕</button>
+      </div>
+      <div class="m-body">
+        <div class="stmp-info" style="border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.04)">
+          <strong id="redact-name" style="color:var(--red)"></strong>
+          <span id="redact-hint"></span>
+        </div>
+        <div
+          style="font-size:12px;color:var(--muted);line-height:1.7;padding:10px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:4px">
+          Are you sure? This action <strong style="color:var(--red)">cannot be undone</strong>. The timestamp will be
+          permanently removed and the stage will return to unstamped.
+        </div>
+      </div>
+      <div class="m-ft">
+        <span class="m-ft-note">This action is irreversible.</span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-redact')">Cancel — Keep Timestamp</button>
+          <button class="btn" style="background:var(--red);border-color:var(--red);color:#fff" onclick="doRedact()">Yes,
+            Redact This Stage</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="overlay" id="ov-summary">
+    <div class="modal w640">
+      <div class="m-hd">
+        <div>
+          <h2 id="sum-title">Document Summary</h2>
+          <p>Stage-by-stage breakdown &amp; statistics</p>
+        </div><button class="m-close" onclick="closeOv('ov-summary')">✕</button>
+      </div>
+      <div class="m-body" id="sum-body"></div>
+      <div class="m-ft"><span class="m-ft-note">Working hours: Mon–Fri, 8AM–5PM only.</span>
+        <div class="m-ft-btns"><button class="btn btn-ghost" onclick="closeOv('ov-summary')">Close</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="scripts.js"></script>
 </body>
+
 </html>
