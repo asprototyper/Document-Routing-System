@@ -117,11 +117,26 @@
           <button class="theme-btn" data-theme="slate" onclick="applyTheme('slate')" title="slate">Slate</button>
           <button class="theme-btn" data-theme="warm" onclick="applyTheme('warm')" title="Warm">Warm</button>
         </div>
-       <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
-      <button class="btn btn-primary btn-sm" onclick="openCreate()"><span class="btn-new-label">+ New Document</span><span class="btn-new-icon">+</span></button>
-    </div>
-  </header>
-  <div class="metrics-body" id="metricsBody"></div>
+        <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+        <button class="btn btn-primary btn-sm" onclick="openCreate()"><span class="btn-new-label">+ New
+            Document</span><span class="btn-new-icon">+</span></button>
+      </div>
+    </header>
+    <div class="metrics-body" id="metricsBody"></div>
+  </div>
+
+  <div id="pg-simple" class="page">
+    <header class="hdr">
+      <button class="sb-toggle" onclick="goTo('tracker')" aria-label="Back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <span class="hdr-logo">Simple <em>View</em></span>
+      <div style="width:34px"></div>
+    </header>
+    <div class="simple-body" id="simpleBody"></div>
   </div>
 
   <nav class="mobile-nav" id="mobileNav" style="display:none">
@@ -141,13 +156,13 @@
       Metrics
     </button>
 
-    <button onclick="openCreate()">
+    <button id="mn-simple" onclick="goTo('simple')">
       <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="9" />
-        <line x1="12" y1="8" x2="12" y2="16" />
+        <rect x="3" y="3" width="18" height="18" rx="2" />
         <line x1="8" y1="12" x2="16" y2="12" />
+        <line x1="12" y1="8" x2="12" y2="16" />
       </svg>
-      New
+      Simple
     </button>
     <button onclick="doLock()">
       <svg viewBox="0 0 24 24">
