@@ -63,6 +63,8 @@ const THEMES = {
     '--text': '#e6edf3',
     '--muted': '#8b949e',
     '--dim': '#484f58'
+
+
   },
   warm: {
     '--bg': '#1a1410',
@@ -86,16 +88,45 @@ const THEMES = {
   }
 }
 
-function applyTheme (name) {
+const LOGOS = {
+  dark: "img/ntc-logo-dark.png",
+  light: "img/ntc-logo-light.png",
+  slate: "img/ntc-logo-slate.png",
+  warm: "img/ntc-logo-warm.png"
+};
+
+const LOGOS2 = {
+  dark: "img/ntc-logo2-dark.png",
+  light: "img/ntc-logo2-light.png",
+  slate: "img/ntc-logo2-slate.png",
+  warm: "img/ntc-logo2-warm.png"
+};
+
+function applyTheme(name) {
   const t = THEMES[name] || THEMES.light
   const root = document.documentElement.style
+
   Object.entries(t).forEach(([k, v]) => root.setProperty(k, v))
+
   document
     .querySelectorAll('.theme-btn')
     .forEach(b => b.classList.toggle('on', b.dataset.theme === name))
+
+  // change logo
+  const pinlogo = document.getElementById("pinlogo")
+  if (pinlogo && LOGOS2[name]) pinlogo.src = LOGOS2[name]
+
+  const logo = document.getElementById("logo")
+  if (logo && LOGOS[name]) logo.src = LOGOS[name]
+
+  const logo2 = document.getElementById("logo2")
+  if (logo2 && LOGOS2[name]) logo2.src = LOGOS2[name]
+
+  const logo3 = document.getElementById("logo3")
+  if (logo3 && LOGOS2[name]) logo3.src = LOGOS2[name]
+
   document.cookie = `theme=${name};max-age=31536000;path=/`
 }
-
 function loadThemeCookie () {
   const m = document.cookie.match(/(?:^|; )theme=([^;]*)/)
   return m ? m[1] : 'light'
@@ -572,7 +603,7 @@ function workMs (a, b) {
 /* ══════════════════════════════════════════════
    PIN
 ══════════════════════════════════════════════ */
-const PIN = '0928'
+const PIN = '0723'
 let pin = ''
 document.querySelectorAll('.pin-key').forEach(k => {
   k.addEventListener('click', () => {
@@ -2040,7 +2071,26 @@ function renderSimple () {
   const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet))
 
   // nextStage only used outside phase 3
-  const nextStage = inPhase3 ? null : ALL_STAGES.find(s => !doc.stages[s.key])
+const pathStages = (() => {
+  const pa = doc.preassess, path = []
+  if (pa === 'incomplete') {
+    path.push(...PHASE1B)
+  } else {
+    path.push(...PHASE1A)
+    if (pa === 'complete') {
+      path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN)
+      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B)
+      else if (doc.p3decision === 'compliant') path.push(...PHASE3A)
+      path.push(...PHASE4A, ...PHASE5)
+      if (doc.certOutcome === 'approved') path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8)
+      else if (doc.certOutcome === 'disapproved') path.push(...PHASE5B, ...PHASE6B)
+    }
+  }
+  return path
+})()
+
+
+const nextStage = inPhase3 ? null : pathStages.find(s => !doc.stages[s.key])
 
   const complete = isComplete(doc)
   const closed = isClosed(doc)
@@ -2175,7 +2225,7 @@ function renderSimple () {
         <div class="simple-stage-hint">Record date application was returned (P3B).</div>
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_return_ts','Application Returned (P3B)','${doc.id}')">Record Return</button>`
     }
-  } else if (nextStage) {
+  } else  {
     const p6aDone = !!doc.stages['p6a_recv_dir']
     const p6bDone = !!doc.stages['p6b_recv_odc']
 
@@ -2194,22 +2244,19 @@ function renderSimple () {
         <div class="simple-stage-name">Return Application to Client</div>
         <div class="simple-stage-hint">Record date and time application was returned.</div>
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p6b_return_ts','Application Returned (6B)','${doc.id}')">Record Return</button>`
+    }
+    else if (nextStage) {
+      stageHtml = `
+        <div class="simple-stage-name">${nextStage.label.replace(/&amp;/g, '&')}</div>
+        <div class="simple-stage-hint">${nextStage.hint || ''}</div>
+        <button class="simple-stamp-btn" onclick="openStampFromSimple('${doc.id}','${nextStage.key}')">Stamp</button>`
     } else {
       stageHtml = `
-        <div class="simple-stage-name">${nextStage.label.replace(
-          /&amp;/g,
-          '&'
-        )}</div>
-        <div class="simple-stage-hint">${nextStage.hint || ''}</div>
-        <button class="simple-stamp-btn" onclick="openStampFromSimple('${
-          doc.id
-        }','${nextStage.key}')">Stamp</button>`
+        <div class="simple-stage-name">All stages recorded</div>
+        <div class="simple-stage-hint"></div>
+        <button class="simple-stamp-btn done" disabled>✓ Done</button>`
     }
-  } else {
-    stageHtml = `
-      <div class="simple-stage-name">All stages recorded</div>
-      <div class="simple-stage-hint"></div>
-      <button class="simple-stamp-btn done" disabled>✓ Done</button>`
+
   }
 
   body.innerHTML = `

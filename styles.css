@@ -204,15 +204,20 @@ body {
 
 .hdr-left {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
-
+.ntc {
+  color: var(--muted);
+}
 .hdr-logo {
+  display: flex;
+  align-items: center;
   font-family: "Fraunces", serif;
   font-size: 22px;
   font-weight: 300;
   color: var(--red);
+  gap: 4px;
 }
 
 .hdr-logo em {
@@ -547,8 +552,22 @@ body {
 }
 
 .empty-ic {
-  font-size: 60px;
-  opacity: 0.12;
+  opacity: 0.25;
+  margin: 0px;
+  padding: 0px;
+}
+
+.pinlogo {
+  height: 7rem;
+  margin: 1rem;
+}
+.topbarlogo {
+  height: 2.8rem;
+  margin-right: 0.5rem;
+}
+
+.logo {
+  height: 5.5rem;
 }
 
 .empty-view p {
@@ -1844,6 +1863,21 @@ body {
 
 /* ══ TABLET  ≤ 900px ══ */
 @media (max-width: 900px) {
+  .hdr-left {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .hdr-logo {
+    font-family: "Fraunces", serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--red);
+  }
+
+  .topbarlogo {
+    display: none;
+  }
   .metrics-body {
     margin-left: 0;
   }
@@ -1933,6 +1967,16 @@ body {
 
 /* ══ MOBILE  ≤ 600px ══ */
 @media (max-width: 600px) {
+  .hdr-logo {
+    font-family: "Fraunces", serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--red);
+  }
+
+  .topbarlogo {
+    display: none;
+  }
   .det-head {
     position: static;
     flex-shrink: 0;
