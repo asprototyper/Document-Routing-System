@@ -277,11 +277,8 @@ const PHASE6B = [
 ]
 const PHASE7 = [{ key: 'p7_payment', label: 'Payment Stage', hint: 'Client' }]
 const PHASE8 = [
-  {
-    key: 'p8_release',
-    label: 'Release Certificate to Applicant',
-    hint: 'CDO II'
-  },
+  { key: 'p8_recv_client', label: 'Received Application from Client', hint: 'CDO II' },
+  { key: 'p8_release', label: 'Release Certificate to Applicant', hint: 'CDO II' },
   { key: 'p8_scan', label: 'Record Release and Scan Documents', hint: 'CDO II' }
 ]
 
@@ -604,7 +601,7 @@ function workMs (a, b) {
    PIN
 ══════════════════════════════════════════════ */
 const PIN = '0723'
-let pin = ''
+let pin = '0723'
 document.querySelectorAll('.pin-key').forEach(k => {
   k.addEventListener('click', () => {
     const v = k.dataset.v
@@ -2073,18 +2070,16 @@ function renderSimple () {
   // nextStage only used outside phase 3
 const pathStages = (() => {
   const pa = doc.preassess, path = []
+  path.push(...PHASE1A)
   if (pa === 'incomplete') {
     path.push(...PHASE1B)
-  } else {
-    path.push(...PHASE1A)
-    if (pa === 'complete') {
-      path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN)
-      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B)
-      else if (doc.p3decision === 'compliant') path.push(...PHASE3A)
-      path.push(...PHASE4A, ...PHASE5)
-      if (doc.certOutcome === 'approved') path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8)
-      else if (doc.certOutcome === 'disapproved') path.push(...PHASE5B, ...PHASE6B)
-    }
+  } else if (pa === 'complete') {
+    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN)
+    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B)
+    else if (doc.p3decision === 'compliant') path.push(...PHASE3A)
+    path.push(...PHASE4A, ...PHASE5)
+    if (doc.certOutcome === 'approved') path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8)
+    else if (doc.certOutcome === 'disapproved') path.push(...PHASE5B, ...PHASE6B)
   }
   return path
 })()
@@ -2095,8 +2090,8 @@ const nextStage = inPhase3 ? null : pathStages.find(s => !doc.stages[s.key])
   const complete = isComplete(doc)
   const closed = isClosed(doc)
 
-  const doneCount = ALL_STAGES.filter(s => doc.stages[s.key]).length
-  const pct = Math.round((doneCount / ALL_STAGES.length) * 100)
+const doneCount = pathStages.filter(s => doc.stages[s.key]).length
+const pct = isComplete(doc) ? 100 : Math.round((doneCount / pathStages.length) * 100)
 
   const phaseOf = key => {
     if (PHASE1A.find(s => s.key === key)) return 'Phase 1A — Engineer'
@@ -2276,7 +2271,7 @@ function openStampFromSimple (docId, key) {
   for (const [track, defs] of Object.entries(TRACK_MAP)) {
     const idx = defs.findIndex(s => s.key === key)
     if (idx !== -1) {
-      if (defs[idx].isApproval) {
+      if (defs[idx].isCertDecision) {
         openApprovalModal(docId)
         return
       }
