@@ -69,6 +69,7 @@
       </div>
       <nav class="hdr-nav">
         <button class="nav-pill on" onclick="goTo('tracker')">Tracker</button>
+        <button class="nav-pill" onclick="goTo('documents')">Documents</button>
         <button class="nav-pill" onclick="goTo('metrics')">Metrics</button>
       </nav>
       <div class="hdr-right">
@@ -114,6 +115,7 @@
       </div>
       <nav class="hdr-nav">
         <button class="nav-pill" onclick="goTo('tracker')">Tracker</button>
+        <button class="nav-pill" onclick="goTo('documents')">Documents</button>
         <button class="nav-pill on" onclick="goTo('metrics')">Metrics</button>
       </nav>
       <div class="hdr-right">
@@ -129,6 +131,74 @@
       </div>
     </header>
     <div class="metrics-body" id="metricsBody"></div>
+  </div>
+
+  <!-- ══ DOCUMENTS ══ -->
+  <div id="pg-documents" class="page">
+    <header class="hdr">
+      <div class="hdr-left">
+        <button class="sb-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <span class="hdr-logo"><img class="topbarlogo" src="img/ntc-logo-light.png" alt="⬡">
+          <p class="ntc">NTC</p> Document <em>Tracker</em>
+        </span><span class="hdr-tag">Office</span>
+      </div>
+      <nav class="hdr-nav">
+        <button class="nav-pill" onclick="goTo('tracker')">Tracker</button>
+        <button class="nav-pill on" onclick="goTo('documents')">Documents</button>
+        <button class="nav-pill" onclick="goTo('metrics')">Metrics</button>
+      </nav>
+      <div class="hdr-right">
+        <div class="theme-switcher">
+          <button class="theme-btn" data-theme="light" onclick="applyTheme('light')" title="Light">Light</button>
+          <button class="theme-btn" data-theme="dark" onclick="applyTheme('dark')" title="Dark">Dark</button>
+          <button class="theme-btn" data-theme="slate" onclick="applyTheme('slate')" title="slate">Slate</button>
+          <button class="theme-btn" data-theme="warm" onclick="applyTheme('warm')" title="Warm">Warm</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="doLock()">Lock</button>
+        <button class="btn btn-primary btn-sm" onclick="openCreate()"><span class="btn-new-label">+ New Document</span><span class="btn-new-icon">+</span></button>
+      </div>
+    </header>
+    <div class="docs-page-body" id="docsPageBody"></div>
+  </div>
+
+  <!-- Delete Confirm (PIN-gated) -->
+  <div class="overlay" id="ov-doc-delete">
+    <div class="modal">
+      <div class="m-hd">
+        <div><h2 style="color:var(--red)">⚠ Delete Document</h2><p>Enter PIN to confirm deletion</p></div>
+        <button class="m-close" onclick="closeOv('ov-doc-delete')">✕</button>
+      </div>
+      <div class="m-body">
+        <div class="stmp-info" style="border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.04);margin-bottom:18px">
+          <strong id="del-doc-name" style="color:var(--red)"></strong>
+          <span>This document and all its recorded stages will be permanently deleted.</span>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;letter-spacing:.05em">Enter PIN to confirm</div>
+          <div class="pin-dots" id="del-pin-dots" style="justify-content:center;margin-bottom:14px">
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+          </div>
+          <div class="pin-pad" style="max-width:220px;margin:0 auto">
+            <button class="pin-key" onclick="delDocKey('1')">1</button><button class="pin-key" onclick="delDocKey('2')">2</button><button class="pin-key" onclick="delDocKey('3')">3</button>
+            <button class="pin-key" onclick="delDocKey('4')">4</button><button class="pin-key" onclick="delDocKey('5')">5</button><button class="pin-key" onclick="delDocKey('6')">6</button>
+            <button class="pin-key" onclick="delDocKey('7')">7</button><button class="pin-key" onclick="delDocKey('8')">8</button><button class="pin-key" onclick="delDocKey('9')">9</button>
+            <button class="pin-key blank"></button><button class="pin-key" onclick="delDocKey('0')">0</button><button class="pin-key del" onclick="delDocKey('del')">⌫</button>
+          </div>
+          <div class="pin-err" id="del-pin-err" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="m-ft">
+        <span class="m-ft-note">This action is irreversible.</span>
+        <div class="m-ft-btns">
+          <button class="btn btn-ghost" onclick="closeOv('ov-doc-delete')">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="pg-simple" class="page">
@@ -160,6 +230,10 @@
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
       </svg>
       Metrics
+    </button>
+    <button id="mn-documents" onclick="goTo('documents')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
+      Documents
     </button>
 
     <button id="mn-simple" onclick="goTo('simple')">

@@ -678,17 +678,18 @@ function goTo (name) {
     .forEach(b =>
       b.classList.toggle('on', b.textContent.trim().toLowerCase() === name)
     )
-  ;['tracker', 'metrics', 'simple'].forEach(p => {
+  ;['tracker', 'metrics', 'simple', 'documents'].forEach(p => {
     const btn = document.getElementById('mn-' + p)
     if (btn) btn.classList.toggle('on', p === name)
   })
   const sb = document.querySelector('.sidebar')
-  if (sb) sb.style.display = name === 'pin' ? 'none' : 'flex'
+  if (sb) sb.style.display = (name === 'pin' || name === 'documents' || name === 'metrics') ? 'none' : 'flex'
   const mn = document.getElementById('mobileNav')
   if (mn) mn.style.display = name === 'pin' ? 'none' : 'flex'
   if (name === 'metrics') renderMetrics()
   if (name === 'tracker') renderSidebar()
   if (name === 'simple') renderSimple()
+  if (name === 'documents') renderDocsPage()
 }
 
 /* ══════════════════════════════════════════════
@@ -2474,3 +2475,226 @@ function toggleSidebar () {
 }
 
 applyTheme(loadThemeCookie())
+
+/* ══════════════════════════════════════════════
+   DOCUMENTS PAGE
+══════════════════════════════════════════════ */
+let docsSearch = '', docsSort = 'created_desc', docsFilter = 'all'
+let docsDeleteTarget = null, docsPinEntry = ''
+
+function docsPct (doc) {
+  const pa = doc.preassess, path = []
+  path.push(...PHASE1A)
+  if (pa === 'incomplete') path.push(...PHASE1B)
+  else if (pa === 'complete') {
+    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN)
+    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B)
+    else if (doc.p3decision === 'compliant') path.push(...PHASE3A)
+    path.push(...PHASE4A, ...PHASE5)
+    if (doc.certOutcome === 'approved') path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8)
+    else if (doc.certOutcome === 'disapproved') path.push(...PHASE5B, ...PHASE6B)
+  }
+  const total = Math.max(path.length, 1)
+  const done = path.filter(s => doc.stages[s.key]).length
+  return Math.round((done / total) * 100)
+}
+
+function docsStatusInfo (doc) {
+  if (isComplete(doc))  return { txt: 'Complete',   cls: 'dsp-complete' }
+  if (isClosed(doc))    return { txt: 'Closed',     cls: 'dsp-closed'   }
+  if (!doc.preassess)   return { txt: 'Pending',    cls: 'dsp-pending'  }
+  return                       { txt: 'In Progress', cls: 'dsp-inprog'  }
+}
+
+function docsCurrentPhase (doc) {
+  if (!doc.preassess) return '—'
+  if (isComplete(doc)) return 'Phase 8'
+  if (isClosed(doc)) {
+    if (doc.preassess === 'incomplete') return 'Phase 1B'
+    if (doc.certOutcome === 'disapproved') return 'Phase 6B'
+    return 'Phase 3B'
+  }
+  const label = lastLabel(doc)
+  if (!label) return '—'
+  // derive phase from lastLabel by matching known phase arrays
+  const phaseMap = [
+    [PHASE1A, 'Phase 1A'], [PHASE1B, 'Phase 1B'],
+    [PHASE2, 'Phase 2'], [PHASE3_LEGAL, 'Phase 3'], [PHASE3_TECH, 'Phase 3'],
+    [PHASE3_FIN, 'Phase 3'], [PHASE3A, 'Phase 3A'], [PHASE3B, 'Phase 3B'],
+    [PHASE4A, 'Phase 4A'], [PHASE5, 'Phase 5'],
+    [PHASE5A, 'Phase 5A'], [PHASE5B, 'Phase 5B'],
+    [PHASE6A, 'Phase 6A'], [PHASE6B, 'Phase 6B'],
+    [PHASE7, 'Phase 7'], [PHASE8, 'Phase 8'],
+  ]
+  for (const [arr, name] of phaseMap) {
+    if (arr.some(s => s.label === label)) return name
+  }
+  return '—'
+}
+
+function renderDocsPage () {
+  const body = $('docsPageBody')
+  if (!body) return
+
+  let list = [...docs]
+
+  // status filter
+  if (docsFilter !== 'all') {
+    list = list.filter(d => {
+      if (docsFilter === 'complete') return isComplete(d)
+      if (docsFilter === 'closed')   return isClosed(d)
+      if (docsFilter === 'pending')  return !d.preassess && !isComplete(d) && !isClosed(d)
+      if (docsFilter === 'inprog')   return d.preassess && !isComplete(d) && !isClosed(d)
+      return true
+    })
+  }
+
+  // search
+  if (docsSearch.trim()) {
+    const q = docsSearch.trim().toLowerCase()
+    list = list.filter(d =>
+      d.entity.toLowerCase().includes(q) ||
+      d.contact.toLowerCase().includes(q) ||
+      d.email.toLowerCase().includes(q) ||
+      (d.remarks || '').toLowerCase().includes(q)
+    )
+  }
+
+  // sort
+  list.sort((a, b) => {
+    switch (docsSort) {
+      case 'created_desc': return new Date(b.createdAt) - new Date(a.createdAt)
+      case 'created_asc':  return new Date(a.createdAt) - new Date(b.createdAt)
+      case 'entity_asc':   return a.entity.localeCompare(b.entity)
+      case 'entity_desc':  return b.entity.localeCompare(a.entity)
+      case 'progress_desc': return docsPct(b) - docsPct(a)
+      case 'progress_asc':  return docsPct(a) - docsPct(b)
+      default: return 0
+    }
+  })
+
+  const filterBtns = ['all','inprog','complete','closed','pending'].map(f => {
+    const labels = { all: 'All', inprog: 'In Progress', complete: 'Complete', closed: 'Closed', pending: 'Pending' }
+    const counts = { all: docs.length }
+    counts.complete = docs.filter(isComplete).length
+    counts.closed   = docs.filter(isClosed).length
+    counts.pending  = docs.filter(d => !d.preassess && !isComplete(d) && !isClosed(d)).length
+    counts.inprog   = docs.filter(d => d.preassess && !isComplete(d) && !isClosed(d)).length
+    return `<button class="dsp-chip ${docsFilter === f ? 'on' : ''}" onclick="docsFilter='${f}';renderDocsPage()">${labels[f]} <span class="dsp-chip-ct">${counts[f]}</span></button>`
+  }).join('')
+
+  const thSort = (label, asc, desc) => {
+    const active = docsSort === asc || docsSort === desc
+    const arrow = docsSort === asc ? ' ↑' : docsSort === desc ? ' ↓' : ''
+    return `<div class="dsp-th ${active ? 'dsp-th-on' : ''}" onclick="docsSort=docsSort==='${asc}'?'${desc}':'${asc}';renderDocsPage()">${label}${arrow}</div>`
+  }
+
+  const rows = list.length ? list.map(d => {
+    const pct = docsPct(d)
+    const { txt, cls } = docsStatusInfo(d)
+    const phase = docsCurrentPhase(d)
+    const barClr = isComplete(d) ? 'var(--green)' : isClosed(d) ? 'var(--red)' : 'var(--blue)'
+    const created = new Date(d.createdAt).toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' })
+    return `<div class="dsp-row">
+      <div class="dsp-td dsp-td-entity">
+        <div class="dsp-entity">${esc(d.entity)}</div>
+        <div class="dsp-sub">${esc(d.contact)} · ${esc(d.email)}</div>
+      </div>
+      <div class="dsp-td"><span class="dsp-status ${cls}">${txt}</span></div>
+      <div class="dsp-td dsp-td-prog">
+        <div class="dsp-prog-wrap">
+          <div class="dsp-prog-bar"><div class="dsp-prog-fill" style="width:${pct}%;background:${barClr}"></div></div>
+          <span class="dsp-prog-pct">${pct}%</span>
+        </div>
+      </div>
+      <div class="dsp-td dsp-td-phase">${phase}</div>
+      <div class="dsp-td dsp-td-stage">${esc(lastLabel(d))}</div>
+      <div class="dsp-td dsp-td-date">${created}</div>
+      <div class="dsp-td dsp-td-act">
+        <button class="dsp-open-btn" onclick="docsOpenTracker('${d.id}')" title="Open in Tracker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+        <button class="dsp-del-btn" onclick="docsConfirmDelete('${d.id}')" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>`
+  }).join('') : `<div class="dsp-empty">
+    <div class="dsp-empty-ic">⬡</div>
+    <div>${docsSearch || docsFilter !== 'all' ? 'No documents match.' : 'No documents yet.'}</div>
+  </div>`
+
+  body.innerHTML = `
+    <div class="dsp-toolbar">
+      <div class="dsp-search-wrap">
+        <svg class="dsp-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="dsp-search" type="text" placeholder="Search entity, contact, email…" value="${esc(docsSearch)}" oninput="docsSearch=this.value;renderDocsPage()">
+        ${docsSearch ? `<button class="dsp-clear" onclick="docsSearch='';renderDocsPage()">✕</button>` : ''}
+      </div>
+      <div class="dsp-chips">${filterBtns}</div>
+      <div class="dsp-count">${list.length} of ${docs.length}</div>
+    </div>
+    <div class="dsp-table-wrap">
+      <div class="dsp-table">
+        <div class="dsp-thead">
+          ${thSort('Entity', 'entity_asc', 'entity_desc')}
+          <div class="dsp-th">Status</div>
+          ${thSort('Progress', 'progress_desc', 'progress_asc')}
+          <div class="dsp-th">Phase</div>
+          <div class="dsp-th">Current Stage</div>
+          ${thSort('Created', 'created_desc', 'created_asc')}
+          <div class="dsp-th dsp-th-act"></div>
+        </div>
+        <div class="dsp-tbody">${rows}</div>
+      </div>
+    </div>`
+}
+
+function docsOpenTracker (id) {
+  selId = id
+  goTo('tracker')
+  renderSidebar()
+  $('emptyView').style.display = 'none'
+  $('docDetail').classList.add('vis')
+  renderDetail()
+}
+
+function docsConfirmDelete (docId) {
+  const doc = docs.find(d => d.id === docId)
+  if (!doc) return
+  docsDeleteTarget = docId
+  docsPinEntry = ''
+  $('del-doc-name').textContent = doc.entity
+  $('del-pin-dots').querySelectorAll('.pin-dot').forEach(d => { d.classList.remove('filled'); d.classList.remove('shake') })
+  $('del-pin-err').textContent = ''
+  openOv('ov-doc-delete')
+}
+
+function syncDelPinDots () {
+  $('del-pin-dots').querySelectorAll('.pin-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < docsPinEntry.length)
+    d.classList.remove('shake')
+  })
+}
+
+function delDocKey (v) {
+  if (v === 'del') docsPinEntry = docsPinEntry.slice(0, -1)
+  else if (docsPinEntry.length < 4) docsPinEntry += v
+  syncDelPinDots()
+  if (docsPinEntry.length === 4) delDocCheckPin()
+}
+
+function delDocCheckPin () {
+  if (docsPinEntry === PIN) {
+    docs = docs.filter(d => d.id !== docsDeleteTarget)
+    if (selId === docsDeleteTarget) selId = null
+    closeOv('ov-doc-delete')
+    docsDeleteTarget = null; docsPinEntry = ''
+    renderSidebar(); renderDocsPage()
+    toast('Document deleted.')
+  } else {
+    $('del-pin-dots').querySelectorAll('.pin-dot').forEach(d => d.classList.add('shake'))
+    $('del-pin-err').textContent = 'Incorrect PIN.'
+    setTimeout(() => { docsPinEntry = ''; syncDelPinDots(); $('del-pin-err').textContent = '' }, 700)
+  }
+}
