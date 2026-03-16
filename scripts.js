@@ -102,6 +102,10 @@ const LOGOS2 = {
   warm: "img/ntc-logo2-warm.png"
 };
 
+
+
+
+
 function applyTheme(name) {
   const t = THEMES[name] || THEMES.light
   const root = document.documentElement.style
@@ -124,6 +128,9 @@ function applyTheme(name) {
 
   const logo3 = document.getElementById("logo3")
   if (logo3 && LOGOS2[name]) logo3.src = LOGOS2[name]
+
+  const logo4 = document.getElementById("logo4")
+  if (logo4 && LOGOS2[name]) logo4.src = LOGOS2[name]
 
   document.cookie = `theme=${name};max-age=31536000;path=/`
 }
@@ -683,13 +690,14 @@ function goTo (name) {
     if (btn) btn.classList.toggle('on', p === name)
   })
   const sb = document.querySelector('.sidebar')
-  if (sb) sb.style.display = (name === 'pin' || name === 'documents' || name === 'metrics') ? 'none' : 'flex'
+  if (sb) sb.style.display = (name === 'pin' || name === 'documents' || name === 'metrics' || name === 'simple') ? 'none' : 'flex'
   const mn = document.getElementById('mobileNav')
   if (mn) mn.style.display = name === 'pin' ? 'none' : 'flex'
   if (name === 'metrics') renderMetrics()
   if (name === 'tracker') renderSidebar()
-  if (name === 'simple') renderSimple()
   if (name === 'documents') renderDocsPage()
+  if (name === 'simple') renderSimple()
+ 
 }
 
 /* ══════════════════════════════════════════════
@@ -2516,7 +2524,6 @@ function docsCurrentPhase (doc) {
   }
   const label = lastLabel(doc)
   if (!label) return '—'
-  // derive phase from lastLabel by matching known phase arrays
   const phaseMap = [
     [PHASE1A, 'Phase 1A'], [PHASE1B, 'Phase 1B'],
     [PHASE2, 'Phase 2'], [PHASE3_LEGAL, 'Phase 3'], [PHASE3_TECH, 'Phase 3'],
@@ -2538,7 +2545,6 @@ function renderDocsPage () {
 
   let list = [...docs]
 
-  // status filter
   if (docsFilter !== 'all') {
     list = list.filter(d => {
       if (docsFilter === 'complete') return isComplete(d)
@@ -2549,7 +2555,6 @@ function renderDocsPage () {
     })
   }
 
-  // search
   if (docsSearch.trim()) {
     const q = docsSearch.trim().toLowerCase()
     list = list.filter(d =>
@@ -2560,7 +2565,6 @@ function renderDocsPage () {
     )
   }
 
-  // sort
   list.sort((a, b) => {
     switch (docsSort) {
       case 'created_desc': return new Date(b.createdAt) - new Date(a.createdAt)
