@@ -37,6 +37,9 @@ function rowToDoc(row, stageRows) {
     p4b_notif_ts: null,
     p4b_return_ts: null,
     p1b_closed: false,
+    email_sent_p3b_notify: row.email_sent_p3b_notify ?? false,
+    email_sent_p6a_notify: row.email_sent_p6a_notify ?? false,
+    email_sent_p6b_notify: row.email_sent_p6b_notify ?? false,
   };
 }
 
@@ -80,7 +83,11 @@ const COL_MAP = {
   p6a_notif_ts: "p6a_notif_ts",
   p6b_notif_ts: "p6b_notif_ts",
   p6b_return_ts: "p6b_return_ts",
+  email_sent_p3b_notify: 'email_sent_p3b_notify',
+  email_sent_p6a_notify: 'email_sent_p6a_notify',
+  email_sent_p6b_notify: 'email_sent_p6b_notify',
   emailVerified: "email_verified",
+  
 };
 
 // ── public API ────────────────────────────────────────────────────────────

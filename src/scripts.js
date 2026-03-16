@@ -879,106 +879,110 @@ function renderDetail() {
     </div>`;
   }
 
-  /* ── PHASE 3 ── */
-  const p3Locked = !p2Done;
-  html += `<div class="ph-hd ${p3Locked ? "locked" : ""}">Phase 3 — Parallel Evaluation</div>`;
-  if (!p3Locked) {
-    function nodToggle(field, recvStamp) {
-      const val = doc[field];
-      if (doc.p3decision === "compliant" && !val) return "";
-      const disabled = !recvStamp;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--s2);border-top:1px solid var(--b1)">
-        <span style="font-size:10px;color:var(--dim);flex:1">Notice of Deficiency</span>
-        ${
-          val
-            ? `<span style="font-size:10px;color:var(--red);font-weight:500">✓ NOD Issued</span>`
-            : disabled
-              ? `<span style="font-size:9px;color:var(--dim);font-style:italic">Available after Received from stamp</span>`
-              : `<button class="stmp" style="border-color:var(--red);color:var(--red);background:rgba(192,57,43,.06)" onclick="setNOD('${field}','${doc.id}')">Issue NOD</button>`
-        }
-      </div>`;
-    }
-    html += `<div class="track-grid-3">
-      <div class="track">
-        <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone ? "sb-status-on" : "sb-status-off"}">${legalDone ? "✓ Done" : "In Progress"}</span></div>
-        ${buildRows(PHASE3_LEGAL, doc, "p3_legal", false)}
-        ${nodToggle("nod_legal", doc.stages["p3_legal_back"])}
-      </div>
-      <div class="track">
-        <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone ? "sb-status-on" : "sb-status-off"}">${techDone ? "✓ Done" : "In Progress"}</span></div>
-        ${buildRows(PHASE3_TECH, doc, "p3_tech", false)}
-        ${nodToggle("nod_tech", doc.stages["p3_tech_back"])}
-      </div>
-      <div class="track">
-        <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone ? "sb-status-on" : "sb-status-off"}">${finDone ? "✓ Done" : "In Progress"}</span></div>
-        ${buildRows(PHASE3_FIN, doc, "p3_fin", false)}
-        ${nodToggle("nod_fin", doc.stages["p3_fin_back"])}
-      </div>
-    </div>`;
+/* ── PHASE 3 ── */
+const p3Locked = !p2Done
+html += `<div class="ph-hd ${p3Locked ? 'locked' : ''}">Phase 3 — Parallel Evaluation</div>`
+if (!p3Locked) {
+  function nodToggle(field, recvStamp) {
+    const val = doc[field]
+    if (doc.p3decision === 'compliant' && !val) return ''
+    const disabled = !recvStamp
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--s2);border-top:1px solid var(--b1)">
+      <span style="font-size:10px;color:var(--dim);flex:1">Notice of Deficiency</span>
+      ${val
+        ? `<span style="font-size:10px;color:var(--red);font-weight:500">✓ NOD Issued</span>`
+        : disabled
+          ? `<span style="font-size:9px;color:var(--dim);font-style:italic">Available after Received from stamp</span>`
+          : `<button class="stmp" style="border-color:var(--red);color:var(--red);background:rgba(192,57,43,.06)" onclick="setNOD('${field}','${doc.id}')">Issue NOD</button>`
+      }
+    </div>`
+  }
+  html += `<div class="track-grid-3">
+    <div class="track">
+      <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone ? 'sb-status-on' : 'sb-status-off'}">${legalDone ? '✓ Done' : 'In Progress'}</span></div>
+      ${buildRows(PHASE3_LEGAL, doc, 'p3_legal', false)}
+      ${nodToggle('nod_legal', doc.stages['p3_legal_back'])}
+    </div>
+    <div class="track">
+      <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone ? 'sb-status-on' : 'sb-status-off'}">${techDone ? '✓ Done' : 'In Progress'}</span></div>
+      ${buildRows(PHASE3_TECH, doc, 'p3_tech', false)}
+      ${nodToggle('nod_tech', doc.stages['p3_tech_back'])}
+    </div>
+    <div class="track">
+      <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone ? 'sb-status-on' : 'sb-status-off'}">${finDone ? '✓ Done' : 'In Progress'}</span></div>
+      ${buildRows(PHASE3_FIN, doc, 'p3_fin', false)}
+      ${nodToggle('nod_fin', doc.stages['p3_fin_back'])}
+    </div>
+  </div>`
 
-    if (anyNOD) {
-      const p3bAllRecvDone =
-        !!doc.stages["p3_legal_back"] &&
-        !!doc.stages["p3_tech_back"] &&
-        !!doc.stages["p3_fin_back"];
-      const p3bEndorseDone = !!doc.stages["p3b_endorse"];
-      html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`;
-      html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
-        <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? "sb-status-warn" : "sb-status-off"}">${p3bAllRecvDone ? "Active" : "Locked — awaiting all Received from"}</span></div>
-        ${buildRows(PHASE3B, doc, "p3b", !p3bAllRecvDone)}
-        <div class="ts-fields">
-          <div class="ts-row">
+  if (anyNOD) {
+    const p3bAllRecvDone =
+      !!doc.stages['p3_legal_back'] &&
+      !!doc.stages['p3_tech_back'] &&
+      !!doc.stages['p3_fin_back']
+    const p3bEndorseDone = !!doc.stages['p3b_endorse']
+    html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`
+    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
+      <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? 'sb-status-warn' : 'sb-status-off'}">${p3bAllRecvDone ? 'Active' : 'Locked — awaiting all Received from'}</span></div>
+      ${buildRows(PHASE3B, doc, 'p3b', !p3bAllRecvDone)}
+      <div class="ts-fields">
+        <div class="ts-row">
           <span class="ts-row-lbl">Applicant Notified (P3B)</span>
           <div class="ts-row-val">
-            ${
-              p3bEndorseDone && !doc.p3b_notif_ts
-                ? `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
-                : ""
-            }
-            ${tsBtn("p3b_notif_ts", "Applicant Notified (P3B)", doc.id, !p3bEndorseDone)}
+            ${p3bEndorseDone
+              ? doc.email_sent_p3b_notify
+                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                : !doc.emailVerified
+                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
+              : ''}
+            ${tsBtn('p3b_notif_ts', 'Applicant Notified (P3B)', doc.id, !p3bEndorseDone)}
           </div>
         </div>
-          <div class="ts-row"><span class="ts-row-lbl">Application Returned (P3B)</span><div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P3B)", doc.id, !doc.p3b_notif_ts)}</div></div>
+        <div class="ts-row">
+          <span class="ts-row-lbl">Application Returned (P3B)</span>
+          <div class="ts-row-val">${tsBtn('p3b_return_ts', 'Application Returned (P3B)', doc.id, !doc.p3b_notif_ts)}</div>
         </div>
-      </div>`;
-      if (doc.p3b_notif_ts && doc.p3b_return_ts)
-        html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`;
-    }
-
-    if (allP3Done && !anyNOD && !p3DecisionSet) {
-      html += `<div class="merge-banner open"><span class="mb-ic">🔓</span><span>All Phase 3 tracks complete — no NOD issued. Confirm findings below.</span></div>`;
-      html += `<div class="dec-box">
-        <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
-        <div class="fg" style="margin-bottom:10px">
-          <div class="fl">Date &amp; Time of Merge <span class="req">*</span></div>
-          <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
-        </div>
-        <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
-      </div>`;
-    } else if (allP3Done && p3DecisionSet) {
-      html += `<div class="dec-box" style="border-color:rgba(126,184,154,.3);margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <div>
-            <div class="dec-title" style="margin-bottom:4px">Phase 3 — Decision recorded</div>
-            <div style="font-size:15px;font-weight:500;color:var(--green)">✓ Compliant → Phase 3A</div>
-          </div>
-          <div style="text-align:right">
-            <div class="dec-rec-lbl">Merge Timestamp</div>
-            <div style="font-size:15px;color:var(--text)">${fmt(doc.p3mergeTs)}</div>
-          </div>
-        </div>
-      </div>`;
-    } else if (!allP3Done) {
-      html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Complete all three Phase 3 tracks to unlock the findings decision.</span></div>`;
-    }
-
-    if (onP3A) {
-      html += `<div class="stage-box">
-        <div class="stage-box-hd"><span class="sb-title">Phase 3A — Endorse to SID</span><span class="${p3aDone ? "sb-status-on" : "sb-status-off"}">${p3aDone ? "✓ Done" : "In Progress"}</span></div>
-        ${buildRows(PHASE3A, doc, "p3a", false)}
-      </div>`;
-    }
+      </div>
+    </div>`
+    if (doc.p3b_notif_ts && doc.p3b_return_ts)
+      html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`
   }
+
+  if (allP3Done && !anyNOD && !p3DecisionSet) {
+    html += `<div class="merge-banner open"><span class="mb-ic">🔓</span><span>All Phase 3 tracks complete — no NOD issued. Confirm findings below.</span></div>`
+    html += `<div class="dec-box">
+      <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
+      <div class="fg" style="margin-bottom:10px">
+        <div class="fl">Date &amp; Time of Merge <span class="req">*</span></div>
+        <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
+      </div>
+      <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
+    </div>`
+  } else if (allP3Done && p3DecisionSet) {
+    html += `<div class="dec-box" style="border-color:rgba(126,184,154,.3);margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="dec-title" style="margin-bottom:4px">Phase 3 — Decision recorded</div>
+          <div style="font-size:15px;font-weight:500;color:var(--green)">✓ Compliant → Phase 3A</div>
+        </div>
+        <div style="text-align:right">
+          <div class="dec-rec-lbl">Merge Timestamp</div>
+          <div style="font-size:15px;color:var(--text)">${fmt(doc.p3mergeTs)}</div>
+        </div>
+      </div>
+    </div>`
+  } else if (!allP3Done) {
+    html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Complete all three Phase 3 tracks to unlock the findings decision.</span></div>`
+  }
+
+  if (onP3A) {
+    html += `<div class="stage-box">
+      <div class="stage-box-hd"><span class="sb-title">Phase 3A — Endorse to SID</span><span class="${p3aDone ? 'sb-status-on' : 'sb-status-off'}">${p3aDone ? '✓ Done' : 'In Progress'}</span></div>
+      ${buildRows(PHASE3A, doc, 'p3a', false)}
+    </div>`
+  }
+}
 
   /* ── PHASE 4 ── */
   const p4Locked2 = !p4Unlocked;
@@ -1033,43 +1037,55 @@ function renderDetail() {
   }
 
   /* ── PHASE 6 ── */
-  const p6Locked = !p6aUnlocked && !p6bUnlocked;
-  html += `<div class="ph-hd ${p6Locked ? "locked" : ""}">Phase 6 — CDO II</div>`;
-  if (p6aUnlocked) {
-    html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? "sb-status-on" : "sb-status-off"}">${p6aDone ? "✓ Done" : "In Progress"}</span></div>
-      ${buildRows(PHASE6A, doc, "p6a", false)}
-      <div class="ts-fields">
-        <div class="ts-row">
-          <span class="ts-row-lbl">Notify Client — Approved &amp; SOA Fees</span>
-          <div class="ts-row-val">
-            ${p6aDone && !doc.p6a_notif_ts ? `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>` : ""}
-            ${tsBtn("p6a_notif_ts", "Client Notified — Approved & SOA", doc.id, !p6aDone)}
-          </div>
+const p6Locked = !p6aUnlocked && !p6bUnlocked
+html += `<div class="ph-hd ${p6Locked ? 'locked' : ''}">Phase 6 — CDO II</div>`
+if (p6aUnlocked) {
+  html += `<div class="stage-box">
+    <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? 'sb-status-on' : 'sb-status-off'}">${p6aDone ? '✓ Done' : 'In Progress'}</span></div>
+    ${buildRows(PHASE6A, doc, 'p6a', false)}
+    <div class="ts-fields">
+      <div class="ts-row">
+        <span class="ts-row-lbl">Notify Client — Approved &amp; SOA Fees</span>
+        <div class="ts-row-val">
+          ${p6aDone
+            ? doc.email_sent_p6a_notify
+              ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+              : !doc.emailVerified
+                ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`
+            : ''}
+          ${tsBtn('p6a_notif_ts', 'Client Notified — Approved & SOA', doc.id, !p6aDone)}
         </div>
       </div>
-    </div>`;
-  } else if (p6bUnlocked) {
-    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
-      <div class="stage-box-hd"><span class="sb-title">Phase 6B — Disapproved</span><span class="sb-status-warn">Dead-end</span></div>
-      ${buildRows(PHASE6B, doc, "p6b", false)}
-      <div class="ts-fields">
-        <div class="ts-row">
-          <span class="ts-row-lbl">Notify Client — Disapproval</span>
-          <div class="ts-row-val">
-            ${doc.stages["p6b_recv_odc"] && !doc.p6b_notif_ts ? `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>` : ""}
-            ${tsBtn("p6b_notif_ts", "Client Notified — Disapproval", doc.id, !doc.stages["p6b_recv_odc"])}
-          </div>
-        </div>
-        <div class="ts-row">
-          <span class="ts-row-lbl">Application Returned</span>
-          <div class="ts-row-val">${tsBtn("p6b_return_ts", "Application Returned (6B)", doc.id, !doc.p6b_notif_ts)}</div>
+    </div>
+  </div>`
+} else if (p6bUnlocked) {
+  html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
+    <div class="stage-box-hd"><span class="sb-title">Phase 6B — Disapproved</span><span class="sb-status-warn">Dead-end</span></div>
+    ${buildRows(PHASE6B, doc, 'p6b', false)}
+    <div class="ts-fields">
+      <div class="ts-row">
+        <span class="ts-row-lbl">Notify Client — Disapproval</span>
+        <div class="ts-row-val">
+          ${doc.stages['p6b_recv_odc']
+            ? doc.email_sent_p6b_notify
+              ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+              : !doc.emailVerified
+                ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>`
+            : ''}
+          ${tsBtn('p6b_notif_ts', 'Client Notified — Disapproval', doc.id, !doc.stages['p6b_recv_odc'])}
         </div>
       </div>
-    </div>`;
-    if (doc.p6b_notif_ts && doc.p6b_return_ts)
-      html += `<div class="closed-banner">⛔ Document closed — client notified ${fmt(doc.p6b_notif_ts)}, application returned ${fmt(doc.p6b_return_ts)}.</div>`;
-  }
+      <div class="ts-row">
+        <span class="ts-row-lbl">Application Returned</span>
+        <div class="ts-row-val">${tsBtn('p6b_return_ts', 'Application Returned (6B)', doc.id, !doc.p6b_notif_ts)}</div>
+      </div>
+    </div>
+  </div>`
+  if (doc.p6b_notif_ts && doc.p6b_return_ts)
+    html += `<div class="closed-banner">⛔ Document closed — client notified ${fmt(doc.p6b_notif_ts)}, application returned ${fmt(doc.p6b_return_ts)}.</div>`
+}
 
   /* ── PHASE 7 ── */
   const p7Locked2 = !p7Unlocked;
