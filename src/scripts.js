@@ -2549,6 +2549,8 @@ Object.assign(window, {
   confirmSimpleP3Merge,
   confirmSimpleP3B,
   renderDocsPage,
+  closeOv, 
+  openOv,
 });
 
 /* ══════════════════════════════════════════════
