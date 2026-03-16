@@ -1217,6 +1217,9 @@ async function saveDoc() {
     p6b_notif_ts: null,
     p6b_return_ts: null,
     p1b_closed: false,
+    email_sent_p3b_notify: false,
+    email_sent_p6a_notify: false,
+    email_sent_p6b_notify: false,
   };
   setLoading(true, "Creating document…");
   try {
@@ -1543,34 +1546,27 @@ async function sendEmail(to, subject, body) {
 
 function openEmailPrev(type, docId) {
   const doc = docId ? docs.find((d) => d.id === docId) : null;
-  const email =
-    type === "verify"
-      ? $("f-email")
-        ? $("f-email").value.trim()
-        : ""
-      : doc?.email || "—";
-  let title = "Email Preview",
-    subj = "",
-    body = "";
+
+  if (type !== "verify" && doc && !doc.emailVerified) {
+    toast("Cannot send email — email address is not verified.", true);
+    return;
+  }
+
+  const email = type === "verify" ? ($("f-email") ? $("f-email").value.trim() : "") : doc?.email || "—";
+  let title = "Email Preview", subj = "", body = "";
 
   if (type === "verify") {
-    const entity = $("f-entity")
-      ? $("f-entity").value.trim() || "the applicant"
-      : "the applicant";
-    title = "Verification Email";
-    subj = "Document Tracker — Email Verification";
+    const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
+    title = "Verification Email"; subj = "Document Tracker — Email Verification";
     body = `Dear ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
   } else if (type === "p6a_notify") {
-    title = "Notification — Approved &amp; SOA";
-    subj = "Document Tracker — Application Approved";
+    title = "Notification — Approved &amp; SOA"; subj = "Document Tracker — Application Approved";
     body = `Dear ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
   } else if (type === "p6b_notify") {
-    title = "Notification — Disapproval";
-    subj = "Document Tracker — Notice of Disapproval";
+    title = "Notification — Disapproval"; subj = "Document Tracker — Notice of Disapproval";
     body = `Dear ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
   } else if (type === "p3b_notify") {
-    title = "Notification — Notice of Deficiency";
-    subj = "Document Tracker — Notice of Deficiency";
+    title = "Notification — Notice of Deficiency"; subj = "Document Tracker — Notice of Deficiency";
     body = `Dear ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Contact Person: ${esc(doc.contact)}<br><br>Thank you.`;
   }
 
@@ -1583,8 +1579,15 @@ function openEmailPrev(type, docId) {
     try {
       setLoading(true, "Sending email…");
       await sendEmail(email, subj, body);
+      if (doc && type !== "verify") {
+        const sentField = `email_sent_${type}`;
+        await updateDoc(doc.id, { [sentField]: true });
+        const localDoc = docs.find((d) => d.id === doc.id);
+        if (localDoc) localDoc[sentField] = true;
+      }
       closeOv("ov-emailprev");
       toast("Email sent.");
+      if (selId) renderDetail();
     } catch (e) {
       console.error(e);
       toast("Failed to send email.", true);
