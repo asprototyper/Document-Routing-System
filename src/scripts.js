@@ -799,6 +799,8 @@ function renderDetail() {
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
             ${emailVal}
             <button class="btn btn-ghost btn-xs" onclick="openEmailPrev('verify','${doc.id}')">✉ Verify</button>
+          </div>
+        </div>
         <div class="ic"><div class="ic-lbl">Remarks</div><div class="ic-val">${doc.remarks || '<span style="color:var(--dim);font-style:italic">None</span>'}</div></div>
         <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${pct}%</div></div>
       </div>
