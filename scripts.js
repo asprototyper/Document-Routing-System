@@ -967,7 +967,12 @@ function renderDetail () {
         <div class="ic"><div class="ic-lbl">Contact Person</div><div class="ic-val">${esc(
           doc.contact
         )}</div></div>
-        <div class="ic"><div class="ic-lbl">Email</div>${emailVal}</div>
+        <div class="ic"><div class="ic-lbl">Email</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            ${emailVal}
+            <button class="btn btn-ghost btn-xs" onclick="openEmailPrev('verify','${doc.id}')">✉ Verify</button>
+          </div>
+        </div>
         <div class="ic"><div class="ic-lbl">Remarks</div><div class="ic-val">${
           doc.remarks ||
           '<span style="color:var(--dim);font-style:italic">None</span>'
@@ -1765,11 +1770,11 @@ function confirmAppr () {
 ══════════════════════════════════════════════ */
 function openEmailPrev (type, docId) {
   const doc = docId ? docs.find(d => d.id === docId) : null
-  const email =
+const email =
   type === "verify"
     ? doc?.email || ($("f-email") ? $("f-email").value.trim() : "")
     : doc?.email || "—";
-
+    
   let title = 'Email Preview',
     subj = '',
     body = ''
