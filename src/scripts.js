@@ -927,7 +927,17 @@ function renderDetail() {
         <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? "sb-status-warn" : "sb-status-off"}">${p3bAllRecvDone ? "Active" : "Locked — awaiting all Received from"}</span></div>
         ${buildRows(PHASE3B, doc, "p3b", !p3bAllRecvDone)}
         <div class="ts-fields">
-          <div class="ts-row"><span class="ts-row-lbl">Applicant Notified (P3B)</span><div class="ts-row-val">${tsBtn("p3b_notif_ts", "Applicant Notified (P3B)", doc.id, !p3bEndorseDone)}</div></div>
+          <div class="ts-row">
+          <span class="ts-row-lbl">Applicant Notified (P3B)</span>
+          <div class="ts-row-val">
+            ${
+              p3bEndorseDone && !doc.p3b_notif_ts
+                ? `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
+                : ""
+            }
+            ${tsBtn("p3b_notif_ts", "Applicant Notified (P3B)", doc.id, !p3bEndorseDone)}
+          </div>
+        </div>
           <div class="ts-row"><span class="ts-row-lbl">Application Returned (P3B)</span><div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P3B)", doc.id, !doc.p3b_notif_ts)}</div></div>
         </div>
       </div>`;
@@ -1503,64 +1513,71 @@ async function confirmAppr() {
   }
 }
 
-
-
 /* ══════════════════════════════════════════════
    EMAIL PREVIEW
 ══════════════════════════════════════════════ */
 async function sendEmail(to, subject, body) {
-  const res = await fetch('/api/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, subject, body })
-  })
-  if (!res.ok) throw new Error('Failed to send')
+  const res = await fetch("/api/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to, subject, body }),
+  });
+  if (!res.ok) throw new Error("Failed to send");
 }
 
 function openEmailPrev(type, docId) {
-  const doc = docId ? docs.find((d) => d.id === docId) : null
+  const doc = docId ? docs.find((d) => d.id === docId) : null;
   const email =
-    type === 'verify'
-      ? $('f-email') ? $('f-email').value.trim() : ''
-      : doc?.email || '—'
-  let title = 'Email Preview', subj = '', body = ''
-  if (type === 'verify') {
-    const entity = $('f-entity')
-      ? $('f-entity').value.trim() || 'the applicant'
-      : 'the applicant'
-    title = 'Verification Email'
-    subj  = 'Document Tracker — Email Verification'
-    body  = `Dear ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`
-  } else if (type === 'p6a_notify') {
-    title = 'Notification — Approved &amp; SOA'
-    subj  = 'Document Tracker — Application Approved'
-    body  = `Dear ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`
-  } else if (type === 'p6b_notify') {
-    title = 'Notification — Disapproval'
-    subj  = 'Document Tracker — Notice of Disapproval'
-    body  = `Dear ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`
+    type === "verify"
+      ? $("f-email")
+        ? $("f-email").value.trim()
+        : ""
+      : doc?.email || "—";
+  let title = "Email Preview",
+    subj = "",
+    body = "";
+
+  if (type === "verify") {
+    const entity = $("f-entity")
+      ? $("f-entity").value.trim() || "the applicant"
+      : "the applicant";
+    title = "Verification Email";
+    subj = "Document Tracker — Email Verification";
+    body = `Dear ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
+  } else if (type === "p6a_notify") {
+    title = "Notification — Approved &amp; SOA";
+    subj = "Document Tracker — Application Approved";
+    body = `Dear ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
+  } else if (type === "p6b_notify") {
+    title = "Notification — Disapproval";
+    subj = "Document Tracker — Notice of Disapproval";
+    body = `Dear ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
+  } else if (type === "p3b_notify") {
+    title = "Notification — Notice of Deficiency";
+    subj = "Document Tracker — Notice of Deficiency";
+    body = `Dear ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Contact Person: ${esc(doc.contact)}<br><br>Thank you.`;
   }
 
-  $('ep-title').textContent = title
-  $('ep-to').textContent    = email
-  $('ep-subj').textContent  = subj
-  $('ep-body').innerHTML    = body
+  $("ep-title").textContent = title;
+  $("ep-to").textContent = email;
+  $("ep-subj").textContent = subj;
+  $("ep-body").innerHTML = body;
 
-  $('ep-send-btn').onclick = async () => {
+  $("ep-send-btn").onclick = async () => {
     try {
-      setLoading(true, 'Sending email…')
-      await sendEmail(email, subj, body)
-      closeOv('ov-emailprev')
-      toast('Email sent.')
+      setLoading(true, "Sending email…");
+      await sendEmail(email, subj, body);
+      closeOv("ov-emailprev");
+      toast("Email sent.");
     } catch (e) {
-      console.error(e)
-      toast('Failed to send email.', true)
+      console.error(e);
+      toast("Failed to send email.", true);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  openOv('ov-emailprev')
+  openOv("ov-emailprev");
 }
 
 /* ══════════════════════════════════════════════
