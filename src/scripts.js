@@ -795,7 +795,10 @@ function renderDetail() {
       <div class="info-cards">
         <div class="ic"><div class="ic-lbl">Entity Name</div><div class="ic-val">${esc(doc.entity)}</div></div>
         <div class="ic"><div class="ic-lbl">Contact Person</div><div class="ic-val">${esc(doc.contact)}</div></div>
-        <div class="ic"><div class="ic-lbl">Email</div>${emailVal}</div>
+        <div class="ic"><div class="ic-lbl">Email11111111111111111111111111</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            ${emailVal}
+            <button class="btn btn-ghost btn-xs" onclick="openEmailPrev('verify','${doc.id}')">✉ Verify</button>
         <div class="ic"><div class="ic-lbl">Remarks</div><div class="ic-val">${doc.remarks || '<span style="color:var(--dim);font-style:italic">None</span>'}</div></div>
         <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${pct}%</div></div>
       </div>
