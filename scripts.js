@@ -967,7 +967,7 @@ function renderDetail () {
         <div class="ic"><div class="ic-lbl">Contact Person</div><div class="ic-val">${esc(
           doc.contact
         )}</div></div>
-        <div class="ic"><div class="ic-lbl">Email</div>
+        <div class="ic"><div class="ic-lbl">Email222</div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
             ${emailVal}
             <button class="btn btn-ghost btn-xs" onclick="openEmailPrev('verify','${doc.id}')">✉ Verify</button>
@@ -1774,7 +1774,7 @@ const email =
   type === "verify"
     ? doc?.email || ($("f-email") ? $("f-email").value.trim() : "")
     : doc?.email || "—";
-    
+
   let title = 'Email Preview',
     subj = '',
     body = ''
