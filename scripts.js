@@ -1766,11 +1766,10 @@ function confirmAppr () {
 function openEmailPrev (type, docId) {
   const doc = docId ? docs.find(d => d.id === docId) : null
   const email =
-    type === 'verify'
-      ? $('f-email')
-        ? $('f-email').value.trim()
-        : ''
-      : doc?.email || '—'
+  type === "verify"
+    ? doc?.email || ($("f-email") ? $("f-email").value.trim() : "")
+    : doc?.email || "—";
+
   let title = 'Email Preview',
     subj = '',
     body = ''
