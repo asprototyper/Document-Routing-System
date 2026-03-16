@@ -6,18 +6,18 @@ export default async function handler(req, res) {
   const { to, subject, body } = req.body
 
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
     secure: false,
     auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
     }
   })
 
   try {
     await transporter.sendMail({
-      from: `NTC Tracker <${process.env.MAIL_USER}>`,
+      from: process.env.SMTP_FROM,
       to,
       subject,
       html: body
