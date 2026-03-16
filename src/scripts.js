@@ -116,10 +116,16 @@ function applyTheme(name) {
     .forEach((b) => b.classList.toggle("on", b.dataset.theme === name));
   const pinlogo = document.getElementById("pinlogo");
   if (pinlogo && LOGOS2[name]) pinlogo.src = LOGOS2[name];
+
+  const logo = document.getElementById("logo");
+  if (logo && LOGOS[name]) logo.src = LOGOS[name];
+
   const logo2 = document.getElementById("logo2");
-  if (logo2 && LOGOS[name]) logo2.src = LOGOS[name];
+  if (logo2 && LOGOS2[name]) logo2.src = LOGOS2[name];
+
   const logo3 = document.getElementById("logo3");
   if (logo3 && LOGOS2[name]) logo3.src = LOGOS2[name];
+
   const logo4 = document.getElementById("logo4");
   if (logo4 && LOGOS2[name]) logo4.src = LOGOS2[name];
   document.cookie = `theme=${name};max-age=31536000;path=/`;
