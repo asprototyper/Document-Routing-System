@@ -197,13 +197,13 @@ const PHASE3_FIN = [
 const PHASE3A = [
   {
     key: "p3a_endorse",
-    label: "Endorse Application to SID",
+    label: "Application Endorsed to SID",
     hint: "All compliant — no NOD",
   },
 ];
 const PHASE3B = [
-  { key: "p3b_nod", label: "Issue Notice of Deficiency", hint: "" },
-  { key: "p3b_endorse", label: "Endorse Application and NOD to SID", hint: "" },
+  { key: "p3b_nod", label: "Notice of Deficiency Issued", hint: "" },
+  { key: "p3b_endorse", label: "Application and Nod endorsed to SID", hint: "" },
 ];
 const PHASE4A = [
   {
@@ -211,6 +211,8 @@ const PHASE4A = [
     label: "Record Acceptance and Scan Documents",
     hint: "CDO II",
   },
+
+  
   {
     key: "p4a_eng_briefer",
     label: "Received by Engineer — Briefer prep &amp; Certificate drafting",
@@ -227,6 +229,10 @@ const PHASE4A = [
     hint: "Director-RB",
   },
   { key: "p4a_odc", label: "Received by ODC", hint: "", isApproval: true },
+];
+
+const PHASE4B = [
+  { key: "p4b_cdo_accept", label: "Record Acceptance and Scan Documents", hint: "CDO II" },
 ];
 const PHASE5 = [
   {
@@ -313,6 +319,7 @@ const ALL_STAGES = [
   ...PHASE3A,
   ...PHASE3B,
   ...PHASE4A,
+  ...PHASE4B,
   ...PHASE5,
   ...PHASE5A,
   ...PHASE5B,
@@ -332,6 +339,7 @@ const TRACK_MAP = {
   p3a: PHASE3A,
   p3b: PHASE3B,
   p4a: PHASE4A,
+  p4b: PHASE4B,
   p5: PHASE5,
   p5a: PHASE5A,
   p5b: PHASE5B,
@@ -557,17 +565,10 @@ function isComplete(doc) {
   return !!doc.stages["p8_scan"];
 }
 function isClosed(doc) {
-  const p1bClosed =
-    doc.preassess === "incomplete" && !!doc.stages["p1b_return"];
-  const p3bClosed =
-    (doc.nod_legal || doc.nod_tech || doc.nod_fin) &&
-    !!doc.p3b_notif_ts &&
-    !!doc.p3b_return_ts;
-  const p6bClosed =
-    doc.certOutcome === "disapproved" &&
-    !!doc.p6b_notif_ts &&
-    !!doc.p6b_return_ts;
-  return p1bClosed || p3bClosed || p6bClosed;
+  const p1bClosed = doc.preassess === "incomplete" && !!doc.stages["p1b_return"];
+  const p4bClosed = (doc.nod_legal || doc.nod_tech || doc.nod_fin) && !!doc.p3b_notif_ts && !!doc.p3b_return_ts;
+  const p6bClosed = doc.certOutcome === "disapproved" && !!doc.p6b_notif_ts && !!doc.p6b_return_ts;
+  return p1bClosed || p4bClosed || p6bClosed;
 }
 function docBadge(doc) {
   if (isComplete(doc))
@@ -698,23 +699,26 @@ function renderDetail() {
   const doc = docs.find((d) => d.id === selId);
   if (!doc) return;
 
-  function countPathStages(doc) {
-    const pa = doc.preassess,
-      path = [];
-    path.push(...PHASE1A);
-    if (pa === "incomplete") path.push(...PHASE1B);
-    else if (pa === "complete") {
-      path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B);
-      else if (doc.p3decision === "compliant") path.push(...PHASE3A);
-      path.push(...PHASE4A, ...PHASE5);
+function countPathStages(doc) {
+  const pa = doc.preassess, path = [];
+  path.push(...PHASE1A);
+  if (pa === "incomplete") path.push(...PHASE1B);
+  else if (pa === "complete") {
+    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
+    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
+      // Path B — NOD → dead end
+      path.push(...PHASE3B, ...PHASE4B);
+    } else if (doc.p3decision === "compliant") {
+      // Path A — compliant → certificate
+      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
       if (doc.certOutcome === "approved")
         path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
       else if (doc.certOutcome === "disapproved")
         path.push(...PHASE5B, ...PHASE6B);
     }
-    return path;
   }
+  return path;
+}
   const pathStages = countPathStages(doc);
   const totalStampable = Math.max(pathStages.length, 1);
   const doneCount = pathStages.filter((s) => doc.stages[s.key]).length;
@@ -989,20 +993,47 @@ if (!p3Locked) {
   }
 }
 
-  /* ── PHASE 4 ── */
-  const p4Locked2 = !p4Unlocked;
-  html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency Notified" : "Path A — Briefer &amp; Certificate"}</div>`;
-  if (!p4Locked2) {
-    if (p3aDone) {
-      html += `<div class="stage-box">
-        <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer &amp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
-        ${buildRows(PHASE4A, doc, "p4a", false)}
-      </div>`;
-    }
-  } else if (p2Done) {
-    html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Phase 4 unlocks after Phase 3A or 3B completes.</span></div>`;
+ /* ── PHASE 4 ── */
+const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
+const p4Locked2 = !p4Unlocked;
+html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer &amp; Certificate"}</div>`;
+if (!p4Locked2) {
+  if (p3aDone) {
+    html += `<div class="stage-box">
+      <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer &amp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE4A, doc, "p4a", false)}
+    </div>`;
   }
-
+  if (p3bDone) {
+    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
+      <div class="stage-box-hd"><span class="sb-title">Phase 4B — Deficiency Follow-up</span><span class="${p4bDone ? "sb-status-on" : "sb-status-off"}">${p4bDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE4B, doc, "p4b", false)}
+      <div class="ts-fields">
+        <div class="ts-row">
+          <span class="ts-row-lbl">Applicant Notified (P3B)</span>
+          <div class="ts-row-val">
+            ${p4bDone
+              ? doc.email_sent_p3b_notify
+                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                : !doc.emailVerified
+                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
+              : ""}
+            ${tsBtn("p3b_notif_ts", "Applicant Notified (P3B)", doc.id, !p4bDone)}
+          </div>
+        </div>
+        <div class="ts-row">
+          <span class="ts-row-lbl">Application Returned (P3B)</span>
+          <div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P3B)", doc.id, !doc.p3b_notif_ts)}</div>
+        </div>
+      </div>
+    </div>`;
+    if (doc.p3b_notif_ts && doc.p3b_return_ts)
+      html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`;
+  }
+} else if (p2Done) {
+  html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Phase 4 unlocks after Phase 3A or 3B completes.</span></div>`;
+}
   /* ── PHASE 5 ── */
   const p5Locked = !p4aDone;
   html += `<div class="ph-hd ${p5Locked ? "locked" : ""}">Phase 5 — Certificate Decision (CDO II)</div>`;
