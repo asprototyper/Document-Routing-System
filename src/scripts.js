@@ -798,8 +798,7 @@ function renderDetail() {
        <div class="ic"><div class="ic-lbl">Email</div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
             ${emailVal}
-            ${!doc.emailVerified ? `<button class="btn btn-ghost btn-xs" onclick="openEmailPrev('verify','${doc.id}')">✉ Verify</button>` : ""}
-          </div>
+            ${!doc.emailVerified ? `<button class="btn btn-ghost btn-xs" onclick="markEmailVerified('${doc.id}')">✉ Verify</button>` : ""}
         </div>
         <div class="ic"><div class="ic-lbl">Remarks</div><div class="ic-val">${doc.remarks || '<span style="color:var(--dim);font-style:italic">None</span>'}</div></div>
         <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${pct}%</div></div>
@@ -2523,6 +2522,23 @@ function toggleSidebar() {
     : openSidebar();
 }
 
+async function markEmailVerified(docId) {
+  const doc = docs.find((d) => d.id === docId);
+  if (!doc) return;
+  setLoading(true, "Updating…");
+  try {
+    await updateDoc(docId, { emailVerified: true });
+    doc.emailVerified = true;
+    renderDetail();
+    toast("Email marked as verified.");
+  } catch (e) {
+    console.error(e);
+    toast("Failed to update.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
 /* ══════════════════════════════════════════════
    EXPOSE GLOBALS (called from inline HTML onclick)
 ══════════════════════════════════════════════ */
@@ -2562,6 +2578,7 @@ Object.assign(window, {
   renderDocsPage,
   closeOv, 
   openOv,
+  markEmailVerified,
 });
 
 /* ══════════════════════════════════════════════
