@@ -987,7 +987,7 @@ if (!p4Locked2) {
       ${buildRows(PHASE4B, doc, "p4b", false)}
       <div class="ts-fields">
         <div class="ts-row">
-          <span class="ts-row-lbl">Applicant Notified (P3B)</span>
+          <span class="ts-row-lbl">Applicant Notified (P4B)</span>
           <div class="ts-row-val">
             ${p4bDone
               ? doc.email_sent_p3b_notify
@@ -996,12 +996,12 @@ if (!p4Locked2) {
                   ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
                   : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
               : ""}
-            ${tsBtn("p3b_notif_ts", "Applicant Notified (P3B)", doc.id, !p4bDone)}
+            ${tsBtn("p3b_notif_ts", "Applicant Notified (P4B)", doc.id, !p4bDone)}
           </div>
         </div>
         <div class="ts-row">
-          <span class="ts-row-lbl">Application Returned (P3B)</span>
-          <div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P3B)", doc.id, !doc.p3b_notif_ts)}</div>
+          <span class="ts-row-lbl">Application Returned (P4B)</span>
+          <div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P4B)", doc.id, !doc.p3b_notif_ts)}</div>
         </div>
       </div>
     </div>`;
@@ -1833,22 +1833,23 @@ function renderSimple() {
   const allP3Done = legalDone && techDone && finDone;
   const anyNOD = doc.nod_legal || doc.nod_tech || doc.nod_fin;
   const p3DecisionSet = !!doc.p3decision;
-  const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet));
+  const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet && !anyNOD));
 
 const pathStages = (() => {
-    const pa = doc.preassess,
-      path = [];
+    const pa = doc.preassess, path = [];
     path.push(...PHASE1A);
     if (pa === "incomplete") path.push(...PHASE1B);
     else if (pa === "complete") {
       path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B);
-      else if (doc.p3decision === "compliant") path.push(...PHASE3A);
-      path.push(...PHASE4A, ...PHASE5);
-      if (doc.certOutcome === "approved")
-        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-      else if (doc.certOutcome === "disapproved")
-        path.push(...PHASE5B, ...PHASE6B);
+      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
+        path.push(...PHASE3B, ...PHASE4B);
+      } else if (doc.p3decision === "compliant") {
+        path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
+        if (doc.certOutcome === "approved")
+          path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
+        else if (doc.certOutcome === "disapproved")
+          path.push(...PHASE5B, ...PHASE6B);
+      }
     }
     return path;
   })();
@@ -1872,7 +1873,8 @@ const pathStages = (() => {
     if (PHASE3_FIN.find((s) => s.key === key)) return "Phase 3 — Financial";
     if (PHASE3A.find((s) => s.key === key)) return "Phase 3A — Endorse";
     if (PHASE3B.find((s) => s.key === key)) return "Phase 3B — Deficiency";
-    if (PHASE4A.find((s) => s.key === key)) return "Phase 4A — Briefer";
+   if (PHASE4A.find((s) => s.key === key)) return "Phase 4A — Briefer";
+    if (PHASE4B.find((s) => s.key === key)) return "Phase 4B — Deficiency";
     if (PHASE5.find((s) => s.key === key)) return "Phase 5 — Decision";
     if (PHASE5A.find((s) => s.key === key)) return "Phase 5A — SOA";
     if (PHASE5B.find((s) => s.key === key)) return "Phase 5B — Disapproval";
@@ -1966,26 +1968,27 @@ const pathStages = (() => {
         </div>`
           : ""
       }`;
-  } else if (
-    doc.p3decision === "nod" &&
-    PHASE3B.every((s) => doc.stages[s.key]) &&
-    !isClosed(doc)
-  ) {
-    if (!doc.p3b_notif_ts) {
-      stageHtml = `
-        <div class="simple-stage-name">Notify Applicant — Deficiency</div>
-        <div class="simple-stage-hint">Record applicant notification timestamp (P3B).</div>
-        <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_notif_ts','Applicant Notified (P3B)','${doc.id}')">Record Notification</button>`;
-    } else {
-      stageHtml = `
-        <div class="simple-stage-name">Return Application — Deficiency</div>
-        <div class="simple-stage-hint">Record date application was returned (P3B).</div>
-        <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_return_ts','Application Returned (P3B)','${doc.id}')">Record Return</button>`;
-    }
   } else {
+    const p3bDone = anyNOD && PHASE3B.every((s) => doc.stages[s.key]);
+    const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
     const p6aDone = !!doc.stages["p6a_recv_dir"];
     const p6bDone = !!doc.stages["p6b_recv_odc"];
-    if (p6aDone && !doc.p6a_notif_ts) {
+    if (p3bDone && !p4bDone) {
+      stageHtml = `
+        <div class="simple-stage-name">Record Acceptance — Deficiency</div>
+        <div class="simple-stage-hint">CDO II records acceptance and scans documents.</div>
+        <button class="simple-stamp-btn" style="background:var(--red)" onclick="openStampFromSimple('${doc.id}','p4b_cdo_accept')">Stamp</button>`;
+    } else if (p4bDone && !doc.p3b_notif_ts) {
+      stageHtml = `
+        <div class="simple-stage-name">Notify Applicant — Deficiency</div>
+        <div class="simple-stage-hint">Record applicant notification timestamp (P4B).</div>
+        <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_notif_ts','Applicant Notified (P4B)','${doc.id}')">Record Notification</button>`;
+    } else if (p4bDone && doc.p3b_notif_ts && !doc.p3b_return_ts) {
+      stageHtml = `
+        <div class="simple-stage-name">Return Application — Deficiency</div>
+        <div class="simple-stage-hint">Record date application was returned (P4B).</div>
+        <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_return_ts','Application Returned (P4B)','${doc.id}')">Record Return</button>`;
+    } else if (p6aDone && !doc.p6a_notif_ts) {
       stageHtml = `
         <div class="simple-stage-name">Notify Client — Approved &amp; SOA</div>
         <div class="simple-stage-hint">Record client notification before payment can proceed.</div>
@@ -2245,7 +2248,7 @@ function docsCurrentPhase(doc) {
   if (isClosed(doc)) {
     if (doc.preassess === "incomplete") return "Phase 1B";
     if (doc.certOutcome === "disapproved") return "Phase 6B";
-    return "Phase 3B";
+    return "Phase 4B";
   }
   const label = lastLabel(doc);
   if (!label) return "—";
