@@ -929,33 +929,11 @@ if (!p3Locked) {
       !!doc.stages['p3_legal_back'] &&
       !!doc.stages['p3_tech_back'] &&
       !!doc.stages['p3_fin_back']
-    const p3bEndorseDone = !!doc.stages['p3b_endorse']
     html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`
     html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
       <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? 'sb-status-warn' : 'sb-status-off'}">${p3bAllRecvDone ? 'Active' : 'Locked — awaiting all Received from'}</span></div>
       ${buildRows(PHASE3B, doc, 'p3b', !p3bAllRecvDone)}
-      <div class="ts-fields">
-        <div class="ts-row">
-          <span class="ts-row-lbl">Applicant Notified (P3B)</span>
-          <div class="ts-row-val">
-            ${p3bEndorseDone
-              ? doc.email_sent_p3b_notify
-                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-                : !doc.emailVerified
-                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
-              : ''}
-            ${tsBtn('p3b_notif_ts', 'Applicant Notified (P3B)', doc.id, !p3bEndorseDone)}
-          </div>
-        </div>
-        <div class="ts-row">
-          <span class="ts-row-lbl">Application Returned (P3B)</span>
-          <div class="ts-row-val">${tsBtn('p3b_return_ts', 'Application Returned (P3B)', doc.id, !doc.p3b_notif_ts)}</div>
-        </div>
-      </div>
     </div>`
-    if (doc.p3b_notif_ts && doc.p3b_return_ts)
-      html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`
   }
 
   if (allP3Done && !anyNOD && !p3DecisionSet) {
@@ -992,7 +970,6 @@ if (!p3Locked) {
     </div>`
   }
 }
-
  /* ── PHASE 4 ── */
 const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
 const p4Locked2 = !p4Unlocked;
