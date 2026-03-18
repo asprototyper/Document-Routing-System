@@ -1647,6 +1647,7 @@ function openSummary(docId) {
     { phase: "Phase 3A", stages: PHASE3A },
     { phase: "Phase 3B", stages: PHASE3B },
     { phase: "Phase 4A", stages: PHASE4A },
+    { phase: "Phase 4B", stages: PHASE4B },
     { phase: "Phase 5", stages: PHASE5 },
     { phase: "Phase 5A", stages: PHASE5A },
     { phase: "Phase 5B", stages: PHASE5B },
@@ -1834,7 +1835,7 @@ function renderSimple() {
   const p3DecisionSet = !!doc.p3decision;
   const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet));
 
-  const pathStages = (() => {
+const pathStages = (() => {
     const pa = doc.preassess,
       path = [];
     path.push(...PHASE1A);
@@ -2216,13 +2217,15 @@ function docsPct(doc) {
   if (pa === "incomplete") path.push(...PHASE1B);
   else if (pa === "complete") {
     path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) path.push(...PHASE3B);
-    else if (doc.p3decision === "compliant") path.push(...PHASE3A);
-    path.push(...PHASE4A, ...PHASE5);
-    if (doc.certOutcome === "approved")
-      path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-    else if (doc.certOutcome === "disapproved")
-      path.push(...PHASE5B, ...PHASE6B);
+    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
+      path.push(...PHASE3B, ...PHASE4B);
+    } else if (doc.p3decision === "compliant") {
+      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
+      if (doc.certOutcome === "approved")
+        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
+      else if (doc.certOutcome === "disapproved")
+        path.push(...PHASE5B, ...PHASE6B);
+    }
   }
   const total = Math.max(path.length, 1);
   const done = path.filter((s) => doc.stages[s.key]).length;
@@ -2256,6 +2259,7 @@ function docsCurrentPhase(doc) {
     [PHASE3A, "Phase 3A"],
     [PHASE3B, "Phase 3B"],
     [PHASE4A, "Phase 4A"],
+    [PHASE4B, "Phase 4B"],
     [PHASE5, "Phase 5"],
     [PHASE5A, "Phase 5A"],
     [PHASE5B, "Phase 5B"],
