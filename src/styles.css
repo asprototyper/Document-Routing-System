@@ -2305,6 +2305,21 @@ body {
   transition: background 0.13s;
 }
 
+.simple-stamp-btn2 {
+  width: 100%;
+  padding: 22px;
+  font-family: "DM Mono", monospace;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--green);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
 .simple-stamp-btn:hover {
   background: var(--red-h);
 }

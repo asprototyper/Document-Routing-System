@@ -1955,7 +1955,7 @@ const pathStages = (() => {
           <div style="font-size:13px;color:var(--green);margin-bottom:8px">✓ All tracks complete — no NOD issued</div>
           <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Confirm findings to proceed to Phase 3A.</div>
           <input type="datetime-local" id="simple-p3-dt" class="fi" value="${nowLocal()}" style="margin-bottom:10px">
-          <button class="simple-stamp-btn" style="padding:14px" onclick="confirmSimpleP3Merge('${doc.id}')">Confirm — Proceed to Phase 3A</button>
+          <button class="simple-stamp-btn2" style="padding:14px" onclick="confirmSimpleP3Merge('${doc.id}')">Confirm — Proceed to Phase 3A</button>
         </div>`
           : ""
       }
