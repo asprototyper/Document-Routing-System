@@ -767,7 +767,7 @@ function countPathStages(doc) {
   const anyNOD = doc.nod_legal || doc.nod_tech || doc.nod_fin;
   const p3DecisionSet = doc.p3decision !== undefined && doc.p3decision !== null;
   const onP3A = allP3Done && p3DecisionSet && doc.p3decision === "compliant";
-  const onP3B = allP3Done && p3DecisionSet && doc.p3decision === "nod";
+  const onP3B = allP3Done && anyNOD;
   const p3aDone = onP3A && PHASE3A.every((s) => doc.stages[s.key]);
   const p3bDone = onP3B && PHASE3B.every((s) => doc.stages[s.key]);
   const p4Unlocked = p3aDone || p3bDone;
