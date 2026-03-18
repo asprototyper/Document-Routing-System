@@ -1557,9 +1557,13 @@ function openEmailPrev(type, docId) {
     return;
   }
 
-  type === "verify"
-    ? doc?.email || ($("f-email") ? $("f-email").value.trim() : "")
-    : doc?.email || "—";
+  let email = "";
+  if (type === "verify") {
+    email = doc?.email || ($("f-email") ? $("f-email").value.trim() : "");
+  } else {
+    email = doc?.email || "—";
+  }
+
   let title = "Email Preview", subj = "", body = "";
 
   if (type === "verify") {
