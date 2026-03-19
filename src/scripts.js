@@ -1608,8 +1608,9 @@ function openEmailPrev(type, docId) {
 
   let title = "Email Preview", subj = "", body = "";
 
- if (type === "verify") {
+if (type === "verify") {
   const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
+  const contact = $("f-contact") ? $("f-contact").value.trim() || entity : entity;
   title = "Verification Email"; subj = "Document Tracker — Email Verification";
   body = `Dear ${esc(contact)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
 } else if (type === "p6a_notify") {
