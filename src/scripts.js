@@ -147,7 +147,7 @@ function cycleTheme() {
 const PHASE1A = [
   {
     key: "p1a_eng_accept",
-    label: "Accept and Furnish Application",
+    label: "Accept Application and Provide copy to the Client",
     hint: "Engineer",
   },
 ];
