@@ -1611,17 +1611,20 @@ function openEmailPrev(type, docId) {
   if (type === "verify") {
     const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
     title = "Verification Email"; subj = "Document Tracker — Email Verification";
-    body = `Dear ${esc(doc.contactName)} of ${esc(doc.entityName)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
-  } else if (type === "p6a_notify") {
-    title = "Notification — Approved & Stamp; SOA"; subj = "Document Tracker — Application Approved";
-    body = `Dear ${esc(doc.contactName)} of ${esc(doc.entityName)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
-  } else if (type === "p6b_notify") {
-    title = "Notification — Disapproval"; subj = "Document Tracker — Notice of Disapproval";
-    body = `Dear ${esc(doc.contactName)} of ${esc(doc.entityName)},<br><br>We regret to inform you that your application has been disapproved. Your application documents are being returned.<br><br>Thank you.`;
-  } else if (type === "p3b_notify") {
-    title = "Notification — Notice of Deficiency"; subj = "Document Tracker — Notice of Deficiency";
-    body = `Dear ${esc(doc.contactName)} of ${esc(doc.entityName)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Thank you.`;
-  }
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
+ } else if (type === "p6a_notify") {
+  title = "Notification — Approved &amp; SOA";
+  subj = "Document Tracker — Application Approved";
+  body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
+} else if (type === "p6b_notify") {
+  title = "Notification — Disapproval";
+  subj = "Document Tracker — Notice of Disapproval";
+  body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
+} else if (type === "p3b_notify") {
+  title = "Notification — Notice of Deficiency";
+  subj = "Document Tracker — Notice of Deficiency";
+  body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Thank you.`;
+}
 
   $("ep-title").textContent = title;
   $("ep-to").textContent = email;
