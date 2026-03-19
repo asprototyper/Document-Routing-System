@@ -1611,7 +1611,7 @@ function openEmailPrev(type, docId) {
   if (type === "verify") {
     const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
     title = "Verification Email"; subj = "Document Tracker — Email Verification";
-    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
+    body = `Dear ${esc(contact)} of ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
  } else if (type === "p6a_notify") {
   title = "Notification — Approved &amp; SOA";
   subj = "Document Tracker — Application Approved";
