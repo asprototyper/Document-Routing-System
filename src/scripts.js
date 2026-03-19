@@ -142,6 +142,35 @@ function cycleTheme() {
 }
 
 /* ══════════════════════════════════════════════
+   FONTS
+══════════════════════════════════════════════ */
+const FONTS = {
+  modern:    { body: "Helvetica, Arial, sans-serif",     heading: "Helvetica, Arial, sans-serif" },
+  classic:   { body: "'EB Garamond', Georgia, serif",    heading: "'EB Garamond', Georgia, serif" },
+  technical: { body: "'DM Mono', monospace",             heading: "'Fraunces', serif" },
+};
+
+function applyFont(name) {
+  const f = FONTS[name] || FONTS.technical;
+  document.documentElement.style.setProperty("--font-body", f.body);
+  document.documentElement.style.setProperty("--font-heading", f.heading);
+  document.body.style.fontFamily = f.body;
+  document.querySelectorAll(".font-opt").forEach((el) =>
+    el.classList.toggle("on", el.id === "font-" + name)
+  );
+  document.cookie = `font=${name};max-age=31536000;path=/`;
+}
+
+function loadFontCookie() {
+  const m = document.cookie.match(/(?:^|; )font=([^;]*)/);
+  return m ? m[1] : "technical";
+}
+
+function openSettings() {
+  openOv("ov-settings");
+}
+
+/* ══════════════════════════════════════════════
    STAGE DEFINITIONS
 ══════════════════════════════════════════════ */
 const PHASE1A = [
@@ -166,7 +195,7 @@ const PHASE2 = [
 const PHASE1B = [
   {
     key: "p1b_return",
-    label: "Return Application — Record Date &amp; Time Returned",
+    label: "Return Application — Record Date & Stamp; Time Returned",
     hint: "Stamp the exact date and time the application was returned to the applicant.",
   },
 ];
@@ -215,7 +244,7 @@ const PHASE4A = [
   
   {
     key: "p4a_eng_briefer",
-    label: "Received by Engineer — Briefer prep &amp; Certificate drafting",
+    label: "Received by Engineer — Briefer prep & Stamp; Certificate drafting",
     hint: "Engineer",
   },
   {
@@ -374,7 +403,7 @@ let docsSearch = "",
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s)
-    .replace(/&/g, "&amp;")
+    .replace(/&/g, "& Stamp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
@@ -514,10 +543,9 @@ function checkPin() {
 }
 function doLock() {
   const sb = document.querySelector(".sidebar");
-  if (sb) {
-    sb.style.display = "none";
-    sb.classList.remove("open");
-  }
+  if (sb) sb.classList.remove("open");
+  const mp = document.querySelector(".main-panel");
+  if (mp) mp.classList.remove("sb-open");
   const bd = $("sbBackdrop");
   if (bd) bd.classList.remove("open");
   const mn = $("mobileNav");
@@ -547,13 +575,15 @@ function goTo(name) {
   });
   const sb = document.querySelector(".sidebar");
   if (sb)
-    sb.style.display = ["pin", "documents", "metrics", "simple"].includes(name)
-      ? "none"
-      : "flex";
+    if (["pin", "documents", "metrics", "simple"].includes(name)) {
+      sb.classList.remove("open");
+      const mp = document.querySelector(".main-panel");
+      if (mp) mp.classList.remove("sb-open");
+    }
   const mn = $("mobileNav");
   if (mn) mn.style.display = name === "pin" ? "none" : "flex";
   if (name === "metrics") renderMetrics();
-  if (name === "tracker") renderSidebar();
+  if (name === "tracker") { renderSidebar(); openSidebar(); }
   if (name === "documents") renderDocsPage();
   if (name === "simple") renderSimple();
 }
@@ -615,6 +645,10 @@ function renderSidebar() {
     <div class="doc-item${d.id === selId ? " sel" : ""}" data-id="${d.id}">
       <div class="di-top"><span class="di-name">${esc(d.entity)}</span>${docBadge(d)}</div>
       <div class="di-sub">Contact: ${esc(d.contact)} · ${fmt(d.createdAt).split(",")[0]}</div>
+      <div class="di-mid">
+        <span class="di-phase">${docsCurrentPhase(d)}</span>
+        ${!isClosed(d) && !isComplete(d) ? `<span class="di-pct">${docsPct(d)}%</span>` : ""}
+      </div>
       <div class="di-bot"><span class="di-stage">↳ ${lastLabel(d)}</span></div>
     </div>`,
     )
@@ -806,19 +840,19 @@ function countPathStages(doc) {
           </div>
         </div>
         <div class="ic"><div class="ic-lbl">Remarks</div><div class="ic-val">${doc.remarks || '<span style="color:var(--dim);font-style:italic">None</span>'}</div></div>
-        <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${pct}%</div></div>
+        <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${isClosed(doc) ? '<span style="color:var(--muted)">inc</span>' : pct + "%"}</div></div>
       </div>
     </div>
     <div class="det-body">
       <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>`;
 
   /* ── PHASE 1 ── */
-  html += `<div class="ph-hd">Phase 1 — Pre-Assessment &amp; Receive Application</div>`;
+  html += `<div class="ph-hd">Phase 1 — Pre-Assessment & Stamp; Receive Application</div>`;
   if (!pa) {
     html += `<div class="dec-box">
       <div class="dec-title">Pre-Assessment — record timestamp and result</div>
       <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Date &amp; Time <span class="req">*</span></div>
+        <div class="fl">Date & Stamp; Time <span class="req">*</span></div>
         <input type="datetime-local" id="pa-inline-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
       </div>
       <div class="preassess-grid" style="max-width:320px">
@@ -879,7 +913,7 @@ function countPathStages(doc) {
   }
 
   /* ── PHASE 2 ── */
-  html += `<div class="ph-hd ${!p1aDone ? "locked" : ""}">Phase 2 — Record &amp; Route (CDO II)</div>`;
+  html += `<div class="ph-hd ${!p1aDone ? "locked" : ""}">Phase 2 — Record & Stamp; Route (CDO II)</div>`;
   html += `<div class="merge-banner ${p1aDone ? "open" : ""}"><span class="mb-ic">${p1aDone ? "🔓" : "🔒"}</span><span>${p1aDone ? "Engineer accepted — CDO II can now record and route." : "Waiting for Engineer to accept application."}</span></div>`;
   if (p1aDone) {
     html += `<div class="stage-box">
@@ -941,7 +975,7 @@ if (!p3Locked) {
     html += `<div class="dec-box">
       <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
       <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Date &amp; Time of Merge <span class="req">*</span></div>
+        <div class="fl">Date & Stamp; Time of Merge <span class="req">*</span></div>
         <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
       </div>
       <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
@@ -973,11 +1007,11 @@ if (!p3Locked) {
  /* ── PHASE 4 ── */
 const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
 const p4Locked2 = !p4Unlocked;
-html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer &amp; Certificate"}</div>`;
+html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Stamp; Certificate"}</div>`;
 if (!p4Locked2) {
   if (p3aDone) {
     html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer &amp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
+      <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer & Stamp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
       ${buildRows(PHASE4A, doc, "p4a", false)}
     </div>`;
   }
@@ -1017,7 +1051,7 @@ if (!p4Locked2) {
   if (!p5Locked) {
     if (!certDecSet) {
       html += `<div class="stage-box">
-        <div class="stage-box-hd"><span class="sb-title">Phase 5 — Record Receipt &amp; Decision</span><span class="sb-status-off">Pending Decision</span></div>
+        <div class="stage-box-hd"><span class="sb-title">Phase 5 — Record Receipt & Stamp; Decision</span><span class="sb-status-off">Pending Decision</span></div>
         ${buildRows(PHASE5, doc, "p5", false)}
       </div>`;
     } else {
@@ -1058,7 +1092,7 @@ if (p6aUnlocked) {
     ${buildRows(PHASE6A, doc, 'p6a', false)}
     <div class="ts-fields">
       <div class="ts-row">
-        <span class="ts-row-lbl">Notify Client — Approved &amp; SOA Fees</span>
+        <span class="ts-row-lbl">Notify Client — Approved & Stamp; SOA Fees</span>
         <div class="ts-row-val">
           ${p6aDone
             ? doc.email_sent_p6a_notify
@@ -1115,7 +1149,7 @@ if (p6aUnlocked) {
   html += `<div class="ph-hd ${p8Locked ? "locked" : ""}">Phase 8 — Release Certificate</div>`;
   if (!p8Locked) {
     html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 8 — Release &amp; Scan (CDO II)</span><span class="${isComplete(doc) ? "sb-status-on" : "sb-status-off"}">${isComplete(doc) ? "✓ Complete" : "In Progress"}</span></div>
+      <div class="stage-box-hd"><span class="sb-title">Phase 8 — Release & Stamp; Scan (CDO II)</span><span class="${isComplete(doc) ? "sb-status-on" : "sb-status-off"}">${isComplete(doc) ? "✓ Complete" : "In Progress"}</span></div>
       ${buildRows(PHASE8, doc, "p8", false)}
     </div>`;
     if (isComplete(doc))
@@ -1374,7 +1408,7 @@ function openStamp(docId, track, idx) {
   const sd = defs[idx];
   if (!sd) return;
   stampCtx = { docId, track, idx, sd };
-  $("sm-name").textContent = sd.label.replace(/&amp;/g, "&");
+  $("sm-name").textContent = sd.label.replace(/& Stamp;/g, "&");
   $("sm-hint").textContent = sd.hint || "Set the date and time.";
   $("sm-note").textContent = "";
   $("sm-passedby-grp").style.display = sd.passedBy ? "block" : "none";
@@ -1577,16 +1611,16 @@ function openEmailPrev(type, docId) {
   if (type === "verify") {
     const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
     title = "Verification Email"; subj = "Document Tracker — Email Verification";
-    body = `Dear ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
   } else if (type === "p6a_notify") {
-    title = "Notification — Approved &amp; SOA"; subj = "Document Tracker — Application Approved";
-    body = `Dear ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
+    title = "Notification — Approved & Stamp; SOA"; subj = "Document Tracker — Application Approved";
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
   } else if (type === "p6b_notify") {
     title = "Notification — Disapproval"; subj = "Document Tracker — Notice of Disapproval";
-    body = `Dear ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Your application documents are being returned.<br><br>Thank you.`;
   } else if (type === "p3b_notify") {
     title = "Notification — Notice of Deficiency"; subj = "Document Tracker — Notice of Deficiency";
-    body = `Dear ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Contact Person: ${esc(doc.contact)}<br><br>Thank you.`;
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Thank you.`;
   }
 
   $("ep-title").textContent = title;
@@ -1606,7 +1640,8 @@ function openEmailPrev(type, docId) {
       }
       closeOv("ov-emailprev");
       toast("Email sent.");
-      if (selId) renderDetail();
+      if ($("pg-simple").classList.contains("active")) renderSimple();
+      else if (selId) renderDetail();
     } catch (e) {
       console.error(e);
       toast("Failed to send email.", true);
@@ -1661,7 +1696,7 @@ function openSummary(docId) {
       const sd = doc.stages[s.key];
       if (sd?.stampedAt)
         events.push({
-          label: s.label.replace(/&amp;/g, "&"),
+          label: s.label.replace(/& Stamp;/g, "&"),
           ts: sd.stampedAt,
           phase: g.phase,
           sd,
@@ -1814,7 +1849,7 @@ function renderSimple() {
         ${docs
           .map(
             (d) => `
-          <div class="simple-pick-item" onclick="selId='${d.id}';renderSimple()">
+         <div class="simple-pick-item" onclick="selectSimpleDoc('${d.id}')">
             <div class="simple-pick-name">${esc(d.entity)}</div>
             <div class="simple-pick-stage">${lastLabel(d)}</div>
           </div>`,
@@ -1927,7 +1962,7 @@ const pathStages = (() => {
       if (!next) return "";
       return `
         <div style="padding:12px 14px">
-          <div class="simple-stage-name" style="font-size:15px;margin-bottom:4px">${next.label.replace(/&amp;/g, "&")}</div>
+          <div class="simple-stage-name" style="font-size:15px;margin-bottom:4px">${next.label.replace(/& Stamp;/g, "&")}</div>
           <div class="simple-stage-hint" style="margin-bottom:12px">${next.hint || ""}</div>
           <button class="simple-stamp-btn" style="padding:14px" onclick="openStampFromSimple('${doc.id}','${next.key}')">Stamp</button>
         </div>${nodHtml}`;
@@ -1971,17 +2006,26 @@ const pathStages = (() => {
   } else {
     const p3bDone = anyNOD && PHASE3B.every((s) => doc.stages[s.key]);
     const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
-    const p6aDone = !!doc.stages["p6a_recv_dir"];
-    const p6bDone = !!doc.stages["p6b_recv_odc"];
+    const certDecSet = !!doc.certOutcome;
+    const p5aDone = certDecSet && doc.certOutcome === "approved" && PHASE5A.every((s) => doc.stages[s.key]);
+    const p5bDone = certDecSet && doc.certOutcome === "disapproved" && PHASE5B.every((s) => doc.stages[s.key]);
+    const p6aDone = p5aDone && PHASE6A.every((s) => doc.stages[s.key]);
+    const p6bDone = p5bDone && PHASE6B.every((s) => doc.stages[s.key]);
     if (p3bDone && !p4bDone) {
       stageHtml = `
         <div class="simple-stage-name">Record Acceptance — Deficiency</div>
         <div class="simple-stage-hint">CDO II records acceptance and scans documents.</div>
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openStampFromSimple('${doc.id}','p4b_cdo_accept')">Stamp</button>`;
     } else if (p4bDone && !doc.p3b_notif_ts) {
+      const emailBtnP3b = doc.email_sent_p3b_notify
+        ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+        : !doc.emailVerified
+          ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+          : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`;
       stageHtml = `
         <div class="simple-stage-name">Notify Applicant — Deficiency</div>
         <div class="simple-stage-hint">Record applicant notification timestamp (P4B).</div>
+        <div style="margin-bottom:10px">${emailBtnP3b}</div>
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_notif_ts','Applicant Notified (P4B)','${doc.id}')">Record Notification</button>`;
     } else if (p4bDone && doc.p3b_notif_ts && !doc.p3b_return_ts) {
       stageHtml = `
@@ -1989,14 +2033,26 @@ const pathStages = (() => {
         <div class="simple-stage-hint">Record date application was returned (P4B).</div>
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p3b_return_ts','Application Returned (P4B)','${doc.id}')">Record Return</button>`;
     } else if (p6aDone && !doc.p6a_notif_ts) {
+      const emailBtnP6a = doc.email_sent_p6a_notify
+        ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+        : !doc.emailVerified
+          ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+          : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`;
       stageHtml = `
-        <div class="simple-stage-name">Notify Client — Approved &amp; SOA</div>
+        <div class="simple-stage-name">Notify Client — Approved & Stamp; SOA</div>
         <div class="simple-stage-hint">Record client notification before payment can proceed.</div>
+        <div style="margin-bottom:10px">${emailBtnP6a}</div>
         <button class="simple-stamp-btn" onclick="openTsModal('p6a_notif_ts','Client Notified — Approved & SOA','${doc.id}')">Record Notification</button>`;
     } else if (p6bDone && !doc.p6b_notif_ts) {
+      const emailBtnP6b = doc.email_sent_p6b_notify
+        ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+        : !doc.emailVerified
+          ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+          : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>`;
       stageHtml = `
         <div class="simple-stage-name">Notify Client — Disapproval</div>
         <div class="simple-stage-hint">Record client notification timestamp.</div>
+        <div style="margin-bottom:10px">${emailBtnP6b}</div>
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p6b_notif_ts','Client Notified — Disapproval','${doc.id}')">Record Notification</button>`;
     } else if (p6bDone && doc.p6b_notif_ts && !doc.p6b_return_ts) {
       stageHtml = `
@@ -2005,7 +2061,7 @@ const pathStages = (() => {
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p6b_return_ts','Application Returned (6B)','${doc.id}')">Record Return</button>`;
     } else if (nextStage) {
       stageHtml = `
-        <div class="simple-stage-name">${nextStage.label.replace(/&amp;/g, "&")}</div>
+        <div class="simple-stage-name">${nextStage.label.replace(/& Stamp;/g, "&")}</div>
         <div class="simple-stage-hint">${nextStage.hint || ""}</div>
         <button class="simple-stamp-btn" onclick="openStampFromSimple('${doc.id}','${nextStage.key}')">Stamp</button>`;
     } else {
@@ -2020,13 +2076,13 @@ const pathStages = (() => {
     <div class="simple-context">
       <div class="simple-entity">${esc(doc.entity)}</div>
       <div class="simple-phase">${phase}</div>
-      <div class="simple-prog-bar"><div class="simple-prog-fill" style="width:${pct}%"></div></div>
-      <div class="simple-pct">${pct}%</div>
+      <div class="simple-prog-bar"><div class="simple-prog-fill" style="width:${closed ? 0 : pct}%"></div></div>
+      <div class="simple-pct">${closed ? "inc" : pct + "%"}</div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 0">
       ${stageHtml}
     </div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:16px" onclick="selId=null;renderSimple()">↩ Change Document</button>`;
+    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:16px" onclick="selectSimpleDoc(null)">↩ Change Document</button>`;
 }
 
 function openStampFromSimple(docId, key) {
@@ -2142,7 +2198,7 @@ function renderMetrics() {
     const cls =
       bnKey === s.key ? "bar-slow" : pct < 30 ? "bar-fast" : "bar-mid";
     return `<div class="stbl-row">
-      <div style="color:var(--muted)">${s.label.replace(/&amp;/g, "&")}</div>
+      <div style="color:var(--muted)">${s.label.replace(/& Stamp;/g, "&")}</div>
       <div style="color:${avg ? "var(--text)" : "var(--dim)"}">${avg ? avg + "h" : "—"}</div>
       <div><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>
       <div style="color:var(--dim)">${counts[s.key] || 0}</div>
@@ -2164,7 +2220,7 @@ function renderMetrics() {
     <div class="ph-hd" style="margin-bottom:14px">Bottleneck Stage</div>
     ${
       bnStage
-        ? `<div class="bottleneck"><div class="bn-ic">⚠</div><div><div class="bn-lbl">Slowest Stage</div><div class="bn-stage">${bnStage.label.replace(/&amp;/g, "&")}</div><div class="bn-time">Avg: ${bnAvg.toFixed(1)}h working time (Mon–Fri, 8AM–5PM)</div></div></div>`
+        ? `<div class="bottleneck"><div class="bn-ic">⚠</div><div><div class="bn-lbl">Slowest Stage</div><div class="bn-stage">${bnStage.label.replace(/& Stamp;/g, "&")}</div><div class="bn-time">Avg: ${bnAvg.toFixed(1)}h working time (Mon–Fri, 8AM–5PM)</div></div></div>`
         : `<div class="bottleneck"><div class="bn-ic">⬡</div><div><div class="bn-lbl">Bottleneck</div><div class="bn-stage" style="color:var(--muted)">No data yet</div></div></div>`
     }
     <div class="ph-hd" style="margin-bottom:14px">Average Time per Stage</div>
@@ -2371,8 +2427,8 @@ function renderDocsPage() {
       <div class="dsp-td"><span class="dsp-status ${cls}">${txt}</span></div>
       <div class="dsp-td dsp-td-prog">
         <div class="dsp-prog-wrap">
-          <div class="dsp-prog-bar"><div class="dsp-prog-fill" style="width:${pct}%;background:${barClr}"></div></div>
-          <span class="dsp-prog-pct">${pct}%</span>
+          <div class="dsp-prog-bar"><div class="dsp-prog-fill" style="width:${isClosed(d) ? 0 : pct}%;background:${barClr}"></div></div>
+          <span class="dsp-prog-pct">${isClosed(d) ? "inc" : pct + "%"}</span>
         </div>
       </div>
       <div class="dsp-td dsp-td-phase">${phase}</div>
@@ -2527,10 +2583,14 @@ document
 function openSidebar() {
   document.querySelector(".sidebar").classList.add("open");
   $("sbBackdrop").classList.add("open");
+  const mp = document.querySelector(".main-panel");
+  if (mp) mp.classList.add("sb-open");
 }
 function closeSidebar() {
   document.querySelector(".sidebar").classList.remove("open");
   $("sbBackdrop").classList.remove("open");
+  const mp = document.querySelector(".main-panel");
+  if (mp) mp.classList.remove("sb-open");
 }
 function toggleSidebar() {
   document.querySelector(".sidebar").classList.contains("open")
@@ -2559,6 +2619,7 @@ async function markEmailVerified(docId) {
    EXPOSE GLOBALS (called from inline HTML onclick)
 ══════════════════════════════════════════════ */
 Object.assign(window, {
+  selectSimpleDoc: (id) => { if (id) selDoc(id); else { selId = null; renderSidebar(); } renderSimple(); },
   applyTheme,
   cycleTheme,
   goTo,
@@ -2595,10 +2656,13 @@ Object.assign(window, {
   closeOv, 
   openOv,
   markEmailVerified,
+  applyFont,
+  openSettings,
 });
 
 /* ══════════════════════════════════════════════
    BOOT
 ══════════════════════════════════════════════ */
 applyTheme(loadThemeCookie());
+applyFont(loadFontCookie());   
 initData();
