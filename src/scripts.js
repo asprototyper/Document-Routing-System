@@ -1608,11 +1608,11 @@ function openEmailPrev(type, docId) {
 
   let title = "Email Preview", subj = "", body = "";
 
-  if (type === "verify") {
-    const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
-    title = "Verification Email"; subj = "Document Tracker — Email Verification";
-    body = `Dear ${esc(contact)} of ${esc(entity)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
- } else if (type === "p6a_notify") {
+ if (type === "verify") {
+  const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
+  title = "Verification Email"; subj = "Document Tracker — Email Verification";
+  body = `Dear ${esc(contact)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
+} else if (type === "p6a_notify") {
   title = "Notification — Approved &amp; SOA";
   subj = "Document Tracker — Application Approved";
   body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
