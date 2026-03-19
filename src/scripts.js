@@ -208,7 +208,7 @@ const PHASE3B = [
 const PHASE4A = [
   {
     key: "p4a_cdo_accept",
-    label: "Record Acceptance and Scan Documents",
+    label: "Record Receipt of Documents",
     hint: "CDO II",
   },
 
@@ -232,7 +232,7 @@ const PHASE4A = [
 ];
 
 const PHASE4B = [
-  { key: "p4b_cdo_accept", label: "Record Acceptance and Scan Documents", hint: "CDO II" },
+  { key: "p4b_cdo_accept", label: "Record Receipt of Documents", hint: "CDO II" },
 ];
 const PHASE5 = [
   {
