@@ -211,8 +211,6 @@ const PHASE4A = [
     label: "Record Receipt of Documents",
     hint: "CDO II",
   },
-
-  
   {
     key: "p4a_eng_briefer",
     label: "Received by Engineer — Briefer prep &amp; Certificate drafting",
@@ -350,6 +348,34 @@ const TRACK_MAP = {
 };
 
 /* ══════════════════════════════════════════════
+   PATH BUILDER — single source of truth
+   Used by renderDetail, renderSimple, docsPct
+══════════════════════════════════════════════ */
+function buildDocPath(doc) {
+  const path = [];
+  path.push(...PHASE1A);
+
+  if (doc.preassess === "incomplete") {
+    path.push(...PHASE1B);
+  } else if (doc.preassess === "complete") {
+    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
+
+    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
+      path.push(...PHASE3B, ...PHASE4B);
+    } else if (doc.p3decision === "compliant") {
+      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
+
+      if (doc.certOutcome === "approved")
+        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
+      else if (doc.certOutcome === "disapproved")
+        path.push(...PHASE5B, ...PHASE6B);
+    }
+  }
+
+  return path;
+}
+
+/* ══════════════════════════════════════════════
    APP STATE
 ══════════════════════════════════════════════ */
 let docs = [];
@@ -411,12 +437,17 @@ function setLoading(on, msg = "Saving…") {
   el.style.opacity = on ? "1" : "0";
 }
 
+let _toastTimer = null;
 function toast(msg, err = false) {
   const t = $("toast");
+  if (_toastTimer) clearTimeout(_toastTimer);
   t.textContent = msg;
   t.className = "toast" + (err ? " terr" : "");
   t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2800);
+  _toastTimer = setTimeout(() => {
+    t.classList.remove("show");
+    _toastTimer = null;
+  }, 2800);
 }
 
 function workMs(a, b) {
@@ -699,27 +730,8 @@ function renderDetail() {
   const doc = docs.find((d) => d.id === selId);
   if (!doc) return;
 
-function countPathStages(doc) {
-  const pa = doc.preassess, path = [];
-  path.push(...PHASE1A);
-  if (pa === "incomplete") path.push(...PHASE1B);
-  else if (pa === "complete") {
-    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
-      // Path B — NOD → dead end
-      path.push(...PHASE3B, ...PHASE4B);
-    } else if (doc.p3decision === "compliant") {
-      // Path A — compliant → certificate
-      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
-      if (doc.certOutcome === "approved")
-        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-      else if (doc.certOutcome === "disapproved")
-        path.push(...PHASE5B, ...PHASE6B);
-    }
-  }
-  return path;
-}
-  const pathStages = countPathStages(doc);
+  // ── CHANGED: use shared buildDocPath instead of inner countPathStages ──
+  const pathStages = buildDocPath(doc);
   const totalStampable = Math.max(pathStages.length, 1);
   const doneCount = pathStages.filter((s) => doc.stages[s.key]).length;
   const pct = Math.round((doneCount / totalStampable) * 100);
@@ -888,129 +900,131 @@ function countPathStages(doc) {
     </div>`;
   }
 
-/* ── PHASE 3 ── */
-const p3Locked = !p2Done
-html += `<div class="ph-hd ${p3Locked ? 'locked' : ''}">Phase 3 — Parallel Evaluation</div>`
-if (!p3Locked) {
-  function nodToggle(field, recvStamp) {
-    const val = doc[field]
-    if (doc.p3decision === 'compliant' && !val) return ''
-    const disabled = !recvStamp
-    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--s2);border-top:1px solid var(--b1)">
-      <span style="font-size:10px;color:var(--dim);flex:1">Notice of Deficiency</span>
-      ${val
-        ? `<span style="font-size:10px;color:var(--red);font-weight:500">✓ NOD Issued</span>`
-        : disabled
-          ? `<span style="font-size:9px;color:var(--dim);font-style:italic">Available after Received from stamp</span>`
-          : `<button class="stmp" style="border-color:var(--red);color:var(--red);background:rgba(192,57,43,.06)" onclick="setNOD('${field}','${doc.id}')">Issue NOD</button>`
-      }
-    </div>`
-  }
-  html += `<div class="track-grid-3">
-    <div class="track">
-      <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone ? 'sb-status-on' : 'sb-status-off'}">${legalDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3_LEGAL, doc, 'p3_legal', false)}
-      ${nodToggle('nod_legal', doc.stages['p3_legal_back'])}
-    </div>
-    <div class="track">
-      <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone ? 'sb-status-on' : 'sb-status-off'}">${techDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3_TECH, doc, 'p3_tech', false)}
-      ${nodToggle('nod_tech', doc.stages['p3_tech_back'])}
-    </div>
-    <div class="track">
-      <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone ? 'sb-status-on' : 'sb-status-off'}">${finDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3_FIN, doc, 'p3_fin', false)}
-      ${nodToggle('nod_fin', doc.stages['p3_fin_back'])}
-    </div>
-  </div>`
-
-  if (anyNOD) {
-    const p3bAllRecvDone =
-      !!doc.stages['p3_legal_back'] &&
-      !!doc.stages['p3_tech_back'] &&
-      !!doc.stages['p3_fin_back']
-    html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`
-    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
-      <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? 'sb-status-warn' : 'sb-status-off'}">${p3bAllRecvDone ? 'Active' : 'Locked — awaiting all Received from'}</span></div>
-      ${buildRows(PHASE3B, doc, 'p3b', !p3bAllRecvDone)}
-    </div>`
-  }
-
-  if (allP3Done && !anyNOD && !p3DecisionSet) {
-    html += `<div class="merge-banner open"><span class="mb-ic">🔓</span><span>All Phase 3 tracks complete — no NOD issued. Confirm findings below.</span></div>`
-    html += `<div class="dec-box">
-      <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
-      <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Date &amp; Time of Merge <span class="req">*</span></div>
-        <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
+  /* ── PHASE 3 ── */
+  const p3Locked = !p2Done;
+  html += `<div class="ph-hd ${p3Locked ? "locked" : ""}">Phase 3 — Parallel Evaluation</div>`;
+  if (!p3Locked) {
+    function nodToggle(field, recvStamp) {
+      const val = doc[field];
+      if (doc.p3decision === "compliant" && !val) return "";
+      const disabled = !recvStamp;
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--s2);border-top:1px solid var(--b1)">
+        <span style="font-size:10px;color:var(--dim);flex:1">Notice of Deficiency</span>
+        ${val
+          ? `<span style="font-size:10px;color:var(--red);font-weight:500">✓ NOD Issued</span>`
+          : disabled
+            ? `<span style="font-size:9px;color:var(--dim);font-style:italic">Available after Received from stamp</span>`
+            : `<button class="stmp" style="border-color:var(--red);color:var(--red);background:rgba(192,57,43,.06)" onclick="setNOD('${field}','${doc.id}')">Issue NOD</button>`
+        }
+      </div>`;
+    }
+    html += `<div class="track-grid-3">
+      <div class="track">
+        <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone ? "sb-status-on" : "sb-status-off"}">${legalDone ? "✓ Done" : "In Progress"}</span></div>
+        ${buildRows(PHASE3_LEGAL, doc, "p3_legal", false)}
+        ${nodToggle("nod_legal", doc.stages["p3_legal_back"])}
       </div>
-      <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
-    </div>`
-  } else if (allP3Done && p3DecisionSet) {
-    html += `<div class="dec-box" style="border-color:rgba(126,184,154,.3);margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <div>
-          <div class="dec-title" style="margin-bottom:4px">Phase 3 — Decision recorded</div>
-          <div style="font-size:15px;font-weight:500;color:var(--green)">✓ Compliant → Phase 3A</div>
-        </div>
-        <div style="text-align:right">
-          <div class="dec-rec-lbl">Merge Timestamp</div>
-          <div style="font-size:15px;color:var(--text)">${fmt(doc.p3mergeTs)}</div>
-        </div>
+      <div class="track">
+        <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone ? "sb-status-on" : "sb-status-off"}">${techDone ? "✓ Done" : "In Progress"}</span></div>
+        ${buildRows(PHASE3_TECH, doc, "p3_tech", false)}
+        ${nodToggle("nod_tech", doc.stages["p3_tech_back"])}
       </div>
-    </div>`
-  } else if (!allP3Done) {
-    html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Complete all three Phase 3 tracks to unlock the findings decision.</span></div>`
-  }
-
-  if (onP3A) {
-    html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 3A — Endorse to SID</span><span class="${p3aDone ? 'sb-status-on' : 'sb-status-off'}">${p3aDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3A, doc, 'p3a', false)}
-    </div>`
-  }
-}
- /* ── PHASE 4 ── */
-const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
-const p4Locked2 = !p4Unlocked;
-html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer &amp; Certificate"}</div>`;
-if (!p4Locked2) {
-  if (p3aDone) {
-    html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer &amp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
-      ${buildRows(PHASE4A, doc, "p4a", false)}
+      <div class="track">
+        <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone ? "sb-status-on" : "sb-status-off"}">${finDone ? "✓ Done" : "In Progress"}</span></div>
+        ${buildRows(PHASE3_FIN, doc, "p3_fin", false)}
+        ${nodToggle("nod_fin", doc.stages["p3_fin_back"])}
+      </div>
     </div>`;
-  }
-  if (p3bDone) {
-    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
-      <div class="stage-box-hd"><span class="sb-title">Phase 4B — Deficiency Follow-up</span><span class="${p4bDone ? "sb-status-on" : "sb-status-off"}">${p4bDone ? "✓ Done" : "In Progress"}</span></div>
-      ${buildRows(PHASE4B, doc, "p4b", false)}
-      <div class="ts-fields">
-        <div class="ts-row">
-          <span class="ts-row-lbl">Applicant Notified (P4B)</span>
-          <div class="ts-row-val">
-            ${p4bDone
-              ? doc.email_sent_p3b_notify
-                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-                : !doc.emailVerified
-                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
-              : ""}
-            ${tsBtn("p3b_notif_ts", "Applicant Notified (P4B)", doc.id, !p4bDone)}
+
+    if (anyNOD) {
+      const p3bAllRecvDone =
+        !!doc.stages["p3_legal_back"] &&
+        !!doc.stages["p3_tech_back"] &&
+        !!doc.stages["p3_fin_back"];
+      html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`;
+      html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
+        <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? "sb-status-warn" : "sb-status-off"}">${p3bAllRecvDone ? "Active" : "Locked — awaiting all Received from"}</span></div>
+        ${buildRows(PHASE3B, doc, "p3b", !p3bAllRecvDone)}
+      </div>`;
+    }
+
+    if (allP3Done && !anyNOD && !p3DecisionSet) {
+      html += `<div class="merge-banner open"><span class="mb-ic">🔓</span><span>All Phase 3 tracks complete — no NOD issued. Confirm findings below.</span></div>`;
+      html += `<div class="dec-box">
+        <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
+        <div class="fg" style="margin-bottom:10px">
+          <div class="fl">Date &amp; Time of Merge <span class="req">*</span></div>
+          <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
+        </div>
+        <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
+      </div>`;
+    } else if (allP3Done && p3DecisionSet) {
+      html += `<div class="dec-box" style="border-color:rgba(126,184,154,.3);margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="dec-title" style="margin-bottom:4px">Phase 3 — Decision recorded</div>
+            <div style="font-size:15px;font-weight:500;color:var(--green)">✓ Compliant → Phase 3A</div>
+          </div>
+          <div style="text-align:right">
+            <div class="dec-rec-lbl">Merge Timestamp</div>
+            <div style="font-size:15px;color:var(--text)">${fmt(doc.p3mergeTs)}</div>
           </div>
         </div>
-        <div class="ts-row">
-          <span class="ts-row-lbl">Application Returned (P4B)</span>
-          <div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P4B)", doc.id, !doc.p3b_notif_ts)}</div>
-        </div>
-      </div>
-    </div>`;
-    if (doc.p3b_notif_ts && doc.p3b_return_ts)
-      html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`;
+      </div>`;
+    } else if (!allP3Done) {
+      html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Complete all three Phase 3 tracks to unlock the findings decision.</span></div>`;
+    }
+
+    if (onP3A) {
+      html += `<div class="stage-box">
+        <div class="stage-box-hd"><span class="sb-title">Phase 3A — Endorse to SID</span><span class="${p3aDone ? "sb-status-on" : "sb-status-off"}">${p3aDone ? "✓ Done" : "In Progress"}</span></div>
+        ${buildRows(PHASE3A, doc, "p3a", false)}
+      </div>`;
+    }
   }
-} else if (p2Done) {
-  html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Phase 4 unlocks after Phase 3A or 3B completes.</span></div>`;
-}
+
+  /* ── PHASE 4 ── */
+  const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
+  const p4Locked2 = !p4Unlocked;
+  html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer &amp; Certificate"}</div>`;
+  if (!p4Locked2) {
+    if (p3aDone) {
+      html += `<div class="stage-box">
+        <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer &amp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
+        ${buildRows(PHASE4A, doc, "p4a", false)}
+      </div>`;
+    }
+    if (p3bDone) {
+      html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
+        <div class="stage-box-hd"><span class="sb-title">Phase 4B — Deficiency Follow-up</span><span class="${p4bDone ? "sb-status-on" : "sb-status-off"}">${p4bDone ? "✓ Done" : "In Progress"}</span></div>
+        ${buildRows(PHASE4B, doc, "p4b", false)}
+        <div class="ts-fields">
+          <div class="ts-row">
+            <span class="ts-row-lbl">Applicant Notified (P4B)</span>
+            <div class="ts-row-val">
+              ${p4bDone
+                ? doc.email_sent_p3b_notify
+                  ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                  : !doc.emailVerified
+                    ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                    : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
+                : ""}
+              ${tsBtn("p3b_notif_ts", "Applicant Notified (P4B)", doc.id, !p4bDone)}
+            </div>
+          </div>
+          <div class="ts-row">
+            <span class="ts-row-lbl">Application Returned (P4B)</span>
+            <div class="ts-row-val">${tsBtn("p3b_return_ts", "Application Returned (P4B)", doc.id, !doc.p3b_notif_ts)}</div>
+          </div>
+        </div>
+      </div>`;
+      if (doc.p3b_notif_ts && doc.p3b_return_ts)
+        html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`;
+    }
+  } else if (p2Done) {
+    html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Phase 4 unlocks after Phase 3A or 3B completes.</span></div>`;
+  }
+
   /* ── PHASE 5 ── */
   const p5Locked = !p4aDone;
   html += `<div class="ph-hd ${p5Locked ? "locked" : ""}">Phase 5 — Certificate Decision (CDO II)</div>`;
@@ -1050,55 +1064,55 @@ if (!p4Locked2) {
   }
 
   /* ── PHASE 6 ── */
-const p6Locked = !p6aUnlocked && !p6bUnlocked
-html += `<div class="ph-hd ${p6Locked ? 'locked' : ''}">Phase 6 — CDO II</div>`
-if (p6aUnlocked) {
-  html += `<div class="stage-box">
-    <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? 'sb-status-on' : 'sb-status-off'}">${p6aDone ? '✓ Done' : 'In Progress'}</span></div>
-    ${buildRows(PHASE6A, doc, 'p6a', false)}
-    <div class="ts-fields">
-      <div class="ts-row">
-        <span class="ts-row-lbl">Notify Client — Approved &amp; SOA Fees</span>
-        <div class="ts-row-val">
-          ${p6aDone
-            ? doc.email_sent_p6a_notify
-              ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-              : !doc.emailVerified
-                ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`
-            : ''}
-          ${tsBtn('p6a_notif_ts', 'Client Notified — Approved & SOA', doc.id, !p6aDone)}
+  const p6Locked = !p6aUnlocked && !p6bUnlocked;
+  html += `<div class="ph-hd ${p6Locked ? "locked" : ""}">Phase 6 — CDO II</div>`;
+  if (p6aUnlocked) {
+    html += `<div class="stage-box">
+      <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? "sb-status-on" : "sb-status-off"}">${p6aDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE6A, doc, "p6a", false)}
+      <div class="ts-fields">
+        <div class="ts-row">
+          <span class="ts-row-lbl">Notify Client — Approved &amp; SOA Fees</span>
+          <div class="ts-row-val">
+            ${p6aDone
+              ? doc.email_sent_p6a_notify
+                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                : !doc.emailVerified
+                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`
+              : ""}
+            ${tsBtn("p6a_notif_ts", "Client Notified — Approved & SOA", doc.id, !p6aDone)}
+          </div>
         </div>
       </div>
-    </div>
-  </div>`
-} else if (p6bUnlocked) {
-  html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
-    <div class="stage-box-hd"><span class="sb-title">Phase 6B — Disapproved</span><span class="sb-status-warn">Dead-end</span></div>
-    ${buildRows(PHASE6B, doc, 'p6b', false)}
-    <div class="ts-fields">
-      <div class="ts-row">
-        <span class="ts-row-lbl">Notify Client — Disapproval</span>
-        <div class="ts-row-val">
-          ${doc.stages['p6b_recv_odc']
-            ? doc.email_sent_p6b_notify
-              ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-              : !doc.emailVerified
-                ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>`
-            : ''}
-          ${tsBtn('p6b_notif_ts', 'Client Notified — Disapproval', doc.id, !doc.stages['p6b_recv_odc'])}
+    </div>`;
+  } else if (p6bUnlocked) {
+    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
+      <div class="stage-box-hd"><span class="sb-title">Phase 6B — Disapproved</span><span class="sb-status-warn">Dead-end</span></div>
+      ${buildRows(PHASE6B, doc, "p6b", false)}
+      <div class="ts-fields">
+        <div class="ts-row">
+          <span class="ts-row-lbl">Notify Client — Disapproval</span>
+          <div class="ts-row-val">
+            ${doc.stages["p6b_recv_odc"]
+              ? doc.email_sent_p6b_notify
+                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                : !doc.emailVerified
+                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>`
+              : ""}
+            ${tsBtn("p6b_notif_ts", "Client Notified — Disapproval", doc.id, !doc.stages["p6b_recv_odc"])}
+          </div>
+        </div>
+        <div class="ts-row">
+          <span class="ts-row-lbl">Application Returned</span>
+          <div class="ts-row-val">${tsBtn("p6b_return_ts", "Application Returned (6B)", doc.id, !doc.p6b_notif_ts)}</div>
         </div>
       </div>
-      <div class="ts-row">
-        <span class="ts-row-lbl">Application Returned</span>
-        <div class="ts-row-val">${tsBtn('p6b_return_ts', 'Application Returned (6B)', doc.id, !doc.p6b_notif_ts)}</div>
-      </div>
-    </div>
-  </div>`
-  if (doc.p6b_notif_ts && doc.p6b_return_ts)
-    html += `<div class="closed-banner">⛔ Document closed — client notified ${fmt(doc.p6b_notif_ts)}, application returned ${fmt(doc.p6b_return_ts)}.</div>`
-}
+    </div>`;
+    if (doc.p6b_notif_ts && doc.p6b_return_ts)
+      html += `<div class="closed-banner">⛔ Document closed — client notified ${fmt(doc.p6b_notif_ts)}, application returned ${fmt(doc.p6b_return_ts)}.</div>`;
+  }
 
   /* ── PHASE 7 ── */
   const p7Locked2 = !p7Unlocked;
@@ -1670,41 +1684,13 @@ function openSummary(docId) {
   );
   const tsFields = [
     { field: "paTs", label: "Pre-Assessment Recorded", phase: "Phase 1" },
-    {
-      field: "p3mergeTs",
-      label: "Phase 3 Merge — No Findings",
-      phase: "Phase 3",
-    },
-    {
-      field: "certDecisionTs",
-      label: `Certificate ${doc.certOutcome || "Decision"}`,
-      phase: "Phase 5",
-    },
-    {
-      field: "p3b_notif_ts",
-      label: "Applicant Notified (P3B)",
-      phase: "Phase 3B",
-    },
-    {
-      field: "p3b_return_ts",
-      label: "Application Returned (P3B)",
-      phase: "Phase 3B",
-    },
-    {
-      field: "p6a_notif_ts",
-      label: "Client Notified — Approved",
-      phase: "Phase 6A",
-    },
-    {
-      field: "p6b_notif_ts",
-      label: "Client Notified — Disapproval",
-      phase: "Phase 6B",
-    },
-    {
-      field: "p6b_return_ts",
-      label: "Application Returned (6B)",
-      phase: "Phase 6B",
-    },
+    { field: "p3mergeTs", label: "Phase 3 Merge — No Findings", phase: "Phase 3" },
+    { field: "certDecisionTs", label: `Certificate ${doc.certOutcome || "Decision"}`, phase: "Phase 5" },
+    { field: "p3b_notif_ts", label: "Applicant Notified (P3B)", phase: "Phase 3B" },
+    { field: "p3b_return_ts", label: "Application Returned (P3B)", phase: "Phase 3B" },
+    { field: "p6a_notif_ts", label: "Client Notified — Approved", phase: "Phase 6A" },
+    { field: "p6b_notif_ts", label: "Client Notified — Disapproval", phase: "Phase 6B" },
+    { field: "p6b_return_ts", label: "Application Returned (6B)", phase: "Phase 6B" },
   ];
   tsFields.forEach((f) => {
     if (doc[f.field])
@@ -1714,17 +1700,12 @@ function openSummary(docId) {
 
   const firstTs = events[0]?.ts,
     lastTs = events[events.length - 1]?.ts;
-  const totalWall =
-    lastTs && firstTs ? new Date(lastTs) - new Date(firstTs) : 0;
+  const totalWall = lastTs && firstTs ? new Date(lastTs) - new Date(firstTs) : 0;
   const totalWork = lastTs && firstTs ? workMs(firstTs, lastTs) : 0;
-  let maxW = 0,
-    bnLabel = "";
+  let maxW = 0, bnLabel = "";
   for (let i = 1; i < events.length; i++) {
     const w = workMs(events[i - 1].ts, events[i].ts);
-    if (w > maxW) {
-      maxW = w;
-      bnLabel = events[i].label;
-    }
+    if (w > maxW) { maxW = w; bnLabel = events[i].label; }
   }
   const maxWall = Math.max(
     1,
@@ -1734,15 +1715,9 @@ function openSummary(docId) {
     ),
   );
 
-  let statusLabel = "In Progress",
-    statusColor = "var(--red)";
-  if (isComplete(doc)) {
-    statusLabel = "Complete";
-    statusColor = "var(--green)";
-  } else if (isClosed(doc)) {
-    statusLabel = "Closed";
-    statusColor = "var(--red)";
-  }
+  let statusLabel = "In Progress", statusColor = "var(--red)";
+  if (isComplete(doc)) { statusLabel = "Complete"; statusColor = "var(--green)"; }
+  else if (isClosed(doc)) { statusLabel = "Closed"; statusColor = "var(--red)"; }
 
   const stageRows = events
     .map((ev, i) => {
@@ -1751,12 +1726,7 @@ function openSummary(docId) {
       const wall = new Date(ev.ts) - new Date(events[i - 1].ts);
       const wk = workMs(events[i - 1].ts, ev.ts);
       const pct = Math.round((wall / maxWall) * 100);
-      const clr =
-        wall === maxWall
-          ? "var(--red)"
-          : pct > 50
-            ? "var(--red)"
-            : "var(--green)";
+      const clr = wall === maxWall ? "var(--red)" : pct > 50 ? "var(--red)" : "var(--green)";
       const sub = ev.sd?.passedBy
         ? ` <span style="color:var(--green);font-size:9px">· ${esc(ev.sd.passedBy)}</span>`
         : ev.sd?.sentBy
@@ -1833,26 +1803,12 @@ function renderSimple() {
   const allP3Done = legalDone && techDone && finDone;
   const anyNOD = doc.nod_legal || doc.nod_tech || doc.nod_fin;
   const p3DecisionSet = !!doc.p3decision;
-  const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet && !anyNOD));
 
-const pathStages = (() => {
-    const pa = doc.preassess, path = [];
-    path.push(...PHASE1A);
-    if (pa === "incomplete") path.push(...PHASE1B);
-    else if (pa === "complete") {
-      path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
-        path.push(...PHASE3B, ...PHASE4B);
-      } else if (doc.p3decision === "compliant") {
-        path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
-        if (doc.certOutcome === "approved")
-          path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-        else if (doc.certOutcome === "disapproved")
-          path.push(...PHASE5B, ...PHASE6B);
-      }
-    }
-    return path;
-  })();
+  // ── CHANGED: fixed inPhase3 to cover anyNOD pending decision too ──
+  const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet));
+
+  // ── CHANGED: use shared buildDocPath instead of inline IIFE ──
+  const pathStages = buildDocPath(doc);
 
   const nextStage = inPhase3
     ? null
@@ -1873,7 +1829,7 @@ const pathStages = (() => {
     if (PHASE3_FIN.find((s) => s.key === key)) return "Phase 3 — Financial";
     if (PHASE3A.find((s) => s.key === key)) return "Phase 3A — Endorse";
     if (PHASE3B.find((s) => s.key === key)) return "Phase 3B — Deficiency";
-   if (PHASE4A.find((s) => s.key === key)) return "Phase 4A — Briefer";
+    if (PHASE4A.find((s) => s.key === key)) return "Phase 4A — Briefer";
     if (PHASE4B.find((s) => s.key === key)) return "Phase 4B — Deficiency";
     if (PHASE5.find((s) => s.key === key)) return "Phase 5 — Decision";
     if (PHASE5A.find((s) => s.key === key)) return "Phase 5A — SOA";
@@ -2045,14 +2001,8 @@ function openStampFromSimple(docId, key) {
 
 async function confirmSimpleP3Merge(docId) {
   const dt = document.getElementById("simple-p3-dt")?.value;
-  if (!dt) {
-    toast("Please set a timestamp.", true);
-    return;
-  }
-  if (new Date(dt) > new Date()) {
-    toast("Cannot be a future time.", true);
-    return;
-  }
+  if (!dt) { toast("Please set a timestamp.", true); return; }
+  if (new Date(dt) > new Date()) { toast("Cannot be a future time.", true); return; }
   const doc = docs.find((d) => d.id === docId);
   const ts = new Date(dt).toISOString();
   setLoading(true, "Confirming Phase 3…");
@@ -2097,8 +2047,7 @@ function renderMetrics() {
   const closed = docs.filter(isClosed).length;
   const inProg = total - complete - closed;
 
-  const times = {},
-    counts = {};
+  const times = {}, counts = {};
   docs.forEach((doc) => {
     ALL_STAGES.forEach((s, i) => {
       if (!doc.stages[s.key]) return;
@@ -2106,41 +2055,29 @@ function renderMetrics() {
       let prev = doc.createdAt;
       for (let j = i - 1; j >= 0; j--) {
         const ps = ALL_STAGES[j];
-        if (doc.stages[ps.key]) {
-          prev = doc.stages[ps.key].stampedAt;
-          break;
-        }
+        if (doc.stages[ps.key]) { prev = doc.stages[ps.key].stampedAt; break; }
       }
       const h = workMs(prev, ts) / 3600000;
       times[s.key] = (times[s.key] || 0) + h;
       counts[s.key] = (counts[s.key] || 0) + 1;
     });
   });
-  let bnKey = null,
-    bnAvg = 0;
+  let bnKey = null, bnAvg = 0;
   ALL_STAGES.forEach((s) => {
     if (!counts[s.key]) return;
     const avg = times[s.key] / counts[s.key];
-    if (avg > bnAvg) {
-      bnAvg = avg;
-      bnKey = s.key;
-    }
+    if (avg > bnAvg) { bnAvg = avg; bnKey = s.key; }
   });
   const bnStage = ALL_STAGES.find((s) => s.key === bnKey);
   const maxAvg = Math.max(
     1,
-    ...ALL_STAGES.map((s) =>
-      counts[s.key] ? times[s.key] / counts[s.key] : 0,
-    ),
+    ...ALL_STAGES.map((s) => counts[s.key] ? times[s.key] / counts[s.key] : 0),
   );
 
   const rows = ALL_STAGES.map((s) => {
-    const avg = counts[s.key]
-      ? (times[s.key] / counts[s.key]).toFixed(1)
-      : null;
+    const avg = counts[s.key] ? (times[s.key] / counts[s.key]).toFixed(1) : null;
     const pct = avg ? Math.round((parseFloat(avg) / maxAvg) * 100) : 0;
-    const cls =
-      bnKey === s.key ? "bar-slow" : pct < 30 ? "bar-fast" : "bar-mid";
+    const cls = bnKey === s.key ? "bar-slow" : pct < 30 ? "bar-fast" : "bar-mid";
     return `<div class="stbl-row">
       <div style="color:var(--muted)">${s.label.replace(/&amp;/g, "&")}</div>
       <div style="color:${avg ? "var(--text)" : "var(--dim)"}">${avg ? avg + "h" : "—"}</div>
@@ -2213,23 +2150,9 @@ async function doRedact() {
 /* ══════════════════════════════════════════════
    DOCUMENTS PAGE
 ══════════════════════════════════════════════ */
+// ── CHANGED: rewritten to use buildDocPath ──
 function docsPct(doc) {
-  const pa = doc.preassess,
-    path = [];
-  path.push(...PHASE1A);
-  if (pa === "incomplete") path.push(...PHASE1B);
-  else if (pa === "complete") {
-    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
-      path.push(...PHASE3B, ...PHASE4B);
-    } else if (doc.p3decision === "compliant") {
-      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
-      if (doc.certOutcome === "approved")
-        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-      else if (doc.certOutcome === "disapproved")
-        path.push(...PHASE5B, ...PHASE6B);
-    }
-  }
+  const path = buildDocPath(doc);
   const total = Math.max(path.length, 1);
   const done = path.filter((s) => doc.stages[s.key]).length;
   return Math.round((done / total) * 100);
@@ -2286,10 +2209,8 @@ function renderDocsPage() {
     list = list.filter((d) => {
       if (docsFilter === "complete") return isComplete(d);
       if (docsFilter === "closed") return isClosed(d);
-      if (docsFilter === "pending")
-        return !d.preassess && !isComplete(d) && !isClosed(d);
-      if (docsFilter === "inprog")
-        return d.preassess && !isComplete(d) && !isClosed(d);
+      if (docsFilter === "pending") return !d.preassess && !isComplete(d) && !isClosed(d);
+      if (docsFilter === "inprog") return d.preassess && !isComplete(d) && !isClosed(d);
       return true;
     });
   }
@@ -2305,20 +2226,13 @@ function renderDocsPage() {
   }
   list.sort((a, b) => {
     switch (docsSort) {
-      case "created_desc":
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      case "created_asc":
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      case "entity_asc":
-        return a.entity.localeCompare(b.entity);
-      case "entity_desc":
-        return b.entity.localeCompare(a.entity);
-      case "progress_desc":
-        return docsPct(b) - docsPct(a);
-      case "progress_asc":
-        return docsPct(a) - docsPct(b);
-      default:
-        return 0;
+      case "created_desc": return new Date(b.createdAt) - new Date(a.createdAt);
+      case "created_asc":  return new Date(a.createdAt) - new Date(b.createdAt);
+      case "entity_asc":   return a.entity.localeCompare(b.entity);
+      case "entity_desc":  return b.entity.localeCompare(a.entity);
+      case "progress_desc": return docsPct(b) - docsPct(a);
+      case "progress_asc":  return docsPct(a) - docsPct(b);
+      default: return 0;
     }
   });
 
@@ -2326,20 +2240,12 @@ function renderDocsPage() {
     all: docs.length,
     complete: docs.filter(isComplete).length,
     closed: docs.filter(isClosed).length,
-    pending: docs.filter((d) => !d.preassess && !isComplete(d) && !isClosed(d))
-      .length,
-    inprog: docs.filter((d) => d.preassess && !isComplete(d) && !isClosed(d))
-      .length,
+    pending: docs.filter((d) => !d.preassess && !isComplete(d) && !isClosed(d)).length,
+    inprog: docs.filter((d) => d.preassess && !isComplete(d) && !isClosed(d)).length,
   };
   const filterBtns = ["all", "inprog", "complete", "closed", "pending"]
     .map((f) => {
-      const labels = {
-        all: "All",
-        inprog: "In Progress",
-        complete: "Complete",
-        closed: "Closed",
-        pending: "Pending",
-      };
+      const labels = { all: "All", inprog: "In Progress", complete: "Complete", closed: "Closed", pending: "Pending" };
       return `<button class="dsp-chip ${docsFilter === f ? "on" : ""}" onclick="docsFilter='${f}';renderDocsPage()">${labels[f]} <span class="dsp-chip-ct">${counts[f]}</span></button>`;
     })
     .join("");
@@ -2351,22 +2257,15 @@ function renderDocsPage() {
   };
 
   const rows = list.length
-    ? list
-        .map((d) => {
-          const pct = docsPct(d);
-          const { txt, cls } = docsStatusInfo(d);
-          const phase = docsCurrentPhase(d);
-          const barClr = isComplete(d)
-            ? "var(--green)"
-            : isClosed(d)
-              ? "var(--red)"
-              : "var(--blue)";
-          const created = new Date(d.createdAt).toLocaleDateString("en-PH", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          });
-          return `<div class="dsp-row">
+    ? list.map((d) => {
+        const pct = docsPct(d);
+        const { txt, cls } = docsStatusInfo(d);
+        const phase = docsCurrentPhase(d);
+        const barClr = isComplete(d) ? "var(--green)" : isClosed(d) ? "var(--red)" : "var(--blue)";
+        const created = new Date(d.createdAt).toLocaleDateString("en-PH", {
+          year: "numeric", month: "short", day: "numeric",
+        });
+        return `<div class="dsp-row">
       <div class="dsp-td dsp-td-entity"><div class="dsp-entity">${esc(d.entity)}</div><div class="dsp-sub">${esc(d.contact)} · ${esc(d.email)}</div></div>
       <div class="dsp-td"><span class="dsp-status ${cls}">${txt}</span></div>
       <div class="dsp-td dsp-td-prog">
@@ -2387,8 +2286,7 @@ function renderDocsPage() {
         </button>
       </div>
     </div>`;
-        })
-        .join("")
+      }).join("")
     : `<div class="dsp-empty"><div class="dsp-empty-ic">⬡</div><div>${docsSearch || docsFilter !== "all" ? "No documents match." : "No documents yet."}</div></div>`;
 
   body.innerHTML = `
@@ -2432,22 +2330,18 @@ function docsConfirmDelete(docId) {
   docsDeleteTarget = docId;
   docsPinEntry = "";
   $("del-doc-name").textContent = doc.entity;
-  $("del-pin-dots")
-    .querySelectorAll(".pin-dot")
-    .forEach((d) => {
-      d.classList.remove("filled");
-      d.classList.remove("shake");
-    });
+  $("del-pin-dots").querySelectorAll(".pin-dot").forEach((d) => {
+    d.classList.remove("filled");
+    d.classList.remove("shake");
+  });
   $("del-pin-err").textContent = "";
   openOv("ov-doc-delete");
 }
 function syncDelPinDots() {
-  $("del-pin-dots")
-    .querySelectorAll(".pin-dot")
-    .forEach((d, i) => {
-      d.classList.toggle("filled", i < docsPinEntry.length);
-      d.classList.remove("shake");
-    });
+  $("del-pin-dots").querySelectorAll(".pin-dot").forEach((d, i) => {
+    d.classList.toggle("filled", i < docsPinEntry.length);
+    d.classList.remove("shake");
+  });
 }
 function delDocKey(v) {
   if (v === "del") docsPinEntry = docsPinEntry.slice(0, -1);
@@ -2457,9 +2351,7 @@ function delDocKey(v) {
 }
 async function delDocCheckPin() {
   if (docsPinEntry !== PIN) {
-    $("del-pin-dots")
-      .querySelectorAll(".pin-dot")
-      .forEach((d) => d.classList.add("shake"));
+    $("del-pin-dots").querySelectorAll(".pin-dot").forEach((d) => d.classList.add("shake"));
     $("del-pin-err").textContent = "Incorrect PIN.";
     setTimeout(() => {
       docsPinEntry = "";
@@ -2494,18 +2386,14 @@ async function delDocCheckPin() {
 /* ══════════════════════════════════════════════
    MODAL UTILS
 ══════════════════════════════════════════════ */
-function openOv(id) {
-  $(id).classList.add("open");
-}
+function openOv(id) { $(id).classList.add("open"); }
 function closeOv(id) {
   $(id).classList.remove("open");
   if (id === "ov-stamp" && tsCtx) tsCtx = null;
   if (id === "ov-stamp" && stampCtx) stampCtx = null;
 }
 document.querySelectorAll(".overlay").forEach((el) =>
-  el.addEventListener("click", (e) => {
-    if (e.target === el) closeOv(el.id);
-  }),
+  el.addEventListener("click", (e) => { if (e.target === el) closeOv(el.id); }),
 );
 function clearErrs(ovId) {
   const m = $(ovId);
@@ -2516,13 +2404,11 @@ function markErr(fId, eId) {
   $(fId).classList.add("err");
   $(eId).classList.add("on");
 }
-document
-  .querySelectorAll(".fi")
-  .forEach((el) =>
-    ["input", "change"].forEach((ev) =>
-      el.addEventListener(ev, () => el.classList.remove("err")),
-    ),
-  );
+document.querySelectorAll(".fi").forEach((el) =>
+  ["input", "change"].forEach((ev) =>
+    el.addEventListener(ev, () => el.classList.remove("err")),
+  ),
+);
 
 function openSidebar() {
   document.querySelector(".sidebar").classList.add("open");
@@ -2556,7 +2442,7 @@ async function markEmailVerified(docId) {
 }
 
 /* ══════════════════════════════════════════════
-   EXPOSE GLOBALS (called from inline HTML onclick)
+   EXPOSE GLOBALS
 ══════════════════════════════════════════════ */
 Object.assign(window, {
   applyTheme,
@@ -2592,7 +2478,7 @@ Object.assign(window, {
   confirmSimpleP3Merge,
   confirmSimpleP3B,
   renderDocsPage,
-  closeOv, 
+  closeOv,
   openOv,
   markEmailVerified,
 });
