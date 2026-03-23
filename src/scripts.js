@@ -583,7 +583,7 @@ function goTo(name) {
   const mn = $("mobileNav");
   if (mn) mn.style.display = name === "pin" ? "none" : "flex";
   if (name === "metrics") renderMetrics();
-  if (name === "tracker") { renderSidebar(); openSidebar(); }
+  if (name === "tracker") { renderSidebar(); if (window.innerWidth > 900) openSidebar(); }
   if (name === "documents") renderDocsPage();
   if (name === "simple") renderSimple();
 }
