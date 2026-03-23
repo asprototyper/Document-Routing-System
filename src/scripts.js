@@ -403,7 +403,7 @@ let docsSearch = "",
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s)
-    .replace(/&/g, "& Stamp;")
+    .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
