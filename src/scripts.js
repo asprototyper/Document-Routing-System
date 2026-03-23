@@ -195,7 +195,7 @@ const PHASE2 = [
 const PHASE1B = [
   {
     key: "p1b_return",
-    label: "Return Application — Record Date & Stamp; Time Returned",
+    label: "Return Application — Record Date & Time Returned",
     hint: "Stamp the exact date and time the application was returned to the applicant.",
   },
 ];
@@ -244,7 +244,7 @@ const PHASE4A = [
   
   {
     key: "p4a_eng_briefer",
-    label: "Received by Engineer — Briefer prep & Stamp; Certificate drafting",
+    label: "Received by Engineer — Briefer prep & Certificate drafting",
     hint: "Engineer",
   },
   {
@@ -847,12 +847,12 @@ function countPathStages(doc) {
       <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>`;
 
   /* ── PHASE 1 ── */
-  html += `<div class="ph-hd">Phase 1 — Pre-Assessment & Stamp; Receive Application</div>`;
+  html += `<div class="ph-hd">Phase 1 — Pre-Assessment & Receive Application</div>`;
   if (!pa) {
     html += `<div class="dec-box">
       <div class="dec-title">Pre-Assessment — record timestamp and result</div>
       <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Date & Stamp; Time <span class="req">*</span></div>
+        <div class="fl">Date & Time <span class="req">*</span></div>
         <input type="datetime-local" id="pa-inline-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
       </div>
       <div class="preassess-grid" style="max-width:320px">
@@ -913,7 +913,7 @@ function countPathStages(doc) {
   }
 
   /* ── PHASE 2 ── */
-  html += `<div class="ph-hd ${!p1aDone ? "locked" : ""}">Phase 2 — Record & Stamp; Route (CDO II)</div>`;
+  html += `<div class="ph-hd ${!p1aDone ? "locked" : ""}">Phase 2 — Record & Route (CDO II)</div>`;
   html += `<div class="merge-banner ${p1aDone ? "open" : ""}"><span class="mb-ic">${p1aDone ? "🔓" : "🔒"}</span><span>${p1aDone ? "Engineer accepted — CDO II can now record and route." : "Waiting for Engineer to accept application."}</span></div>`;
   if (p1aDone) {
     html += `<div class="stage-box">
@@ -975,7 +975,7 @@ if (!p3Locked) {
     html += `<div class="dec-box">
       <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
       <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Date & Stamp; Time of Merge <span class="req">*</span></div>
+        <div class="fl">Date & Time of Merge <span class="req">*</span></div>
         <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
       </div>
       <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
@@ -1007,11 +1007,11 @@ if (!p3Locked) {
  /* ── PHASE 4 ── */
 const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
 const p4Locked2 = !p4Unlocked;
-html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Stamp; Certificate"}</div>`;
+html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}</div>`;
 if (!p4Locked2) {
   if (p3aDone) {
     html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer & Stamp; Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
+      <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer & Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
       ${buildRows(PHASE4A, doc, "p4a", false)}
     </div>`;
   }
@@ -1051,7 +1051,7 @@ if (!p4Locked2) {
   if (!p5Locked) {
     if (!certDecSet) {
       html += `<div class="stage-box">
-        <div class="stage-box-hd"><span class="sb-title">Phase 5 — Record Receipt & Stamp; Decision</span><span class="sb-status-off">Pending Decision</span></div>
+        <div class="stage-box-hd"><span class="sb-title">Phase 5 — Record Receipt & Decision</span><span class="sb-status-off">Pending Decision</span></div>
         ${buildRows(PHASE5, doc, "p5", false)}
       </div>`;
     } else {
@@ -1092,7 +1092,7 @@ if (p6aUnlocked) {
     ${buildRows(PHASE6A, doc, 'p6a', false)}
     <div class="ts-fields">
       <div class="ts-row">
-        <span class="ts-row-lbl">Notify Client — Approved & Stamp; SOA Fees</span>
+        <span class="ts-row-lbl">Notify Client — Approved & SOA Fees</span>
         <div class="ts-row-val">
           ${p6aDone
             ? doc.email_sent_p6a_notify
@@ -1149,7 +1149,7 @@ if (p6aUnlocked) {
   html += `<div class="ph-hd ${p8Locked ? "locked" : ""}">Phase 8 — Release Certificate</div>`;
   if (!p8Locked) {
     html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 8 — Release & Stamp; Scan (CDO II)</span><span class="${isComplete(doc) ? "sb-status-on" : "sb-status-off"}">${isComplete(doc) ? "✓ Complete" : "In Progress"}</span></div>
+      <div class="stage-box-hd"><span class="sb-title">Phase 8 — Release & Scan (CDO II)</span><span class="${isComplete(doc) ? "sb-status-on" : "sb-status-off"}">${isComplete(doc) ? "✓ Complete" : "In Progress"}</span></div>
       ${buildRows(PHASE8, doc, "p8", false)}
     </div>`;
     if (isComplete(doc))
@@ -1408,7 +1408,7 @@ function openStamp(docId, track, idx) {
   const sd = defs[idx];
   if (!sd) return;
   stampCtx = { docId, track, idx, sd };
-  $("sm-name").textContent = sd.label.replace(/& Stamp;/g, "&");
+  $("sm-name").textContent = sd.label.replace(/&amp;/g, "&");
   $("sm-hint").textContent = sd.hint || "Set the date and time.";
   $("sm-note").textContent = "";
   $("sm-passedby-grp").style.display = sd.passedBy ? "block" : "none";
@@ -1700,7 +1700,7 @@ function openSummary(docId) {
       const sd = doc.stages[s.key];
       if (sd?.stampedAt)
         events.push({
-          label: s.label.replace(/& Stamp;/g, "&"),
+          label: s.label.replace(/&amp;/g, "&"),
           ts: sd.stampedAt,
           phase: g.phase,
           sd,
@@ -1966,7 +1966,7 @@ const pathStages = (() => {
       if (!next) return "";
       return `
         <div style="padding:12px 14px">
-          <div class="simple-stage-name" style="font-size:15px;margin-bottom:4px">${next.label.replace(/& Stamp;/g, "&")}</div>
+          <div class="simple-stage-name" style="font-size:15px;margin-bottom:4px">${next.label.replace(/&amp;/g, "&")}</div>
           <div class="simple-stage-hint" style="margin-bottom:12px">${next.hint || ""}</div>
           <button class="simple-stamp-btn" style="padding:14px" onclick="openStampFromSimple('${doc.id}','${next.key}')">Stamp</button>
         </div>${nodHtml}`;
@@ -2043,7 +2043,7 @@ const pathStages = (() => {
           ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
           : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`;
       stageHtml = `
-        <div class="simple-stage-name">Notify Client — Approved & Stamp; SOA</div>
+        <div class="simple-stage-name">Notify Client — Approved & SOA</div>
         <div class="simple-stage-hint">Record client notification before payment can proceed.</div>
         <div style="margin-bottom:10px">${emailBtnP6a}</div>
         <button class="simple-stamp-btn" onclick="openTsModal('p6a_notif_ts','Client Notified — Approved & SOA','${doc.id}')">Record Notification</button>`;
@@ -2065,7 +2065,7 @@ const pathStages = (() => {
         <button class="simple-stamp-btn" style="background:var(--red)" onclick="openTsModal('p6b_return_ts','Application Returned (6B)','${doc.id}')">Record Return</button>`;
     } else if (nextStage) {
       stageHtml = `
-        <div class="simple-stage-name">${nextStage.label.replace(/& Stamp;/g, "&")}</div>
+        <div class="simple-stage-name">${nextStage.label.replace(/&amp;/g, "&")}</div>
         <div class="simple-stage-hint">${nextStage.hint || ""}</div>
         <button class="simple-stamp-btn" onclick="openStampFromSimple('${doc.id}','${nextStage.key}')">Stamp</button>`;
     } else {
@@ -2202,7 +2202,7 @@ function renderMetrics() {
     const cls =
       bnKey === s.key ? "bar-slow" : pct < 30 ? "bar-fast" : "bar-mid";
     return `<div class="stbl-row">
-      <div style="color:var(--muted)">${s.label.replace(/& Stamp;/g, "&")}</div>
+      <div style="color:var(--muted)">${s.label.replace(/&amp;/g, "&")}</div>
       <div style="color:${avg ? "var(--text)" : "var(--dim)"}">${avg ? avg + "h" : "—"}</div>
       <div><div class="bar-bg"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>
       <div style="color:var(--dim)">${counts[s.key] || 0}</div>
@@ -2224,7 +2224,7 @@ function renderMetrics() {
     <div class="ph-hd" style="margin-bottom:14px">Bottleneck Stage</div>
     ${
       bnStage
-        ? `<div class="bottleneck"><div class="bn-ic">⚠</div><div><div class="bn-lbl">Slowest Stage</div><div class="bn-stage">${bnStage.label.replace(/& Stamp;/g, "&")}</div><div class="bn-time">Avg: ${bnAvg.toFixed(1)}h working time (Mon–Fri, 8AM–5PM)</div></div></div>`
+        ? `<div class="bottleneck"><div class="bn-ic">⚠</div><div><div class="bn-lbl">Slowest Stage</div><div class="bn-stage">${bnStage.label.replace(/&amp;/g, "&")}</div><div class="bn-time">Avg: ${bnAvg.toFixed(1)}h working time (Mon–Fri, 8AM–5PM)</div></div></div>`
         : `<div class="bottleneck"><div class="bn-ic">⬡</div><div><div class="bn-lbl">Bottleneck</div><div class="bn-stage" style="color:var(--muted)">No data yet</div></div></div>`
     }
     <div class="ph-hd" style="margin-bottom:14px">Average Time per Stage</div>
