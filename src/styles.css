@@ -1253,7 +1253,7 @@ body {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.185);
+  background: rgba(0, 0, 0, 0.089);
   backdrop-filter: blur(3px);
   z-index: 200;
   display: flex;
