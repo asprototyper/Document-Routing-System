@@ -834,7 +834,7 @@ function countPathStages(doc) {
           <div class="det-entity">${esc(doc.entity)}</div>
           <div class="det-meta"><span class="det-meta-i">Created ${fmt(doc.createdAt)}</span></div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="openSummary('${doc.id}')">⬡ Summary</button>
+       <button class="btn btn-primary btn-sm" onclick="exportDocPDF()">Export PDF</button> <button class="btn btn-ghost btn-sm" onclick="openSummary('${doc.id}')">⬡ Summary</button> 
       </div>
       <div class="info-cards">
         <div class="ic"><div class="ic-lbl">Entity Name</div><div class="ic-val">${esc(doc.entity)}</div></div>
@@ -2632,6 +2632,55 @@ async function markEmailVerified(docId) {
   } catch (e) {
     console.error(e);
     toast("Failed to update.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function exportToPDF(elementId, filename = "document.pdf") {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  setLoading(true, "Generating PDF...");
+
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2, // better quality
+      useCORS: true
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let y = 0;
+
+    if (imgHeight < pageHeight) {
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    } else {
+      // multi-page support
+      let heightLeft = imgHeight;
+
+      while (heightLeft > 0) {
+        pdf.addImage(imgData, "PNG", 0, y, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        y -= pageHeight;
+
+        if (heightLeft > 0) pdf.addPage();
+      }
+    }
+
+    pdf.save(filename);
+  } catch (err) {
+    console.error(err);
+    toast("Failed to generate PDF", true);
   } finally {
     setLoading(false);
   }
