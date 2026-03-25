@@ -275,6 +275,11 @@ body {
 }
 
 /* ── BUTTONS ── */
+
+.btn-fix {
+  margin-left:160px;
+  margin-right:5px;
+}
 .btn {
   font-family: "DM Mono", monospace;
   font-size: 14px;
@@ -350,12 +355,12 @@ body {
 }
 
 .sidebar {
-  width: 340px;
+  width: 300px;
   position: fixed;
   top: 64px;
   left: 0;
   bottom: 0;
-  z-index: 90;
+  z-index: 200;            /* above content */
   border-right: 1px solid var(--b1);
   display: flex;
   flex-direction: column;
@@ -368,6 +373,8 @@ body {
 .sidebar.open {
   transform: translateX(0);
 }
+
+
 
 .sb-hd {
   padding: 12px 15px;
@@ -550,12 +557,8 @@ body {
   overflow: hidden;
   margin-left: 0;
   min-height: 0;
-  transition: margin-left 0.22s ease;
 }
 
-.main-panel.sb-open {
-  margin-left: 340px;
-}
 
 .empty-view {
   flex: 1;
@@ -1864,15 +1867,16 @@ body {
 }
 
 /* ── Mobile sidebar overlay backdrop ── */
+/* AFTER */
 .sb-backdrop {
   display: none;
   position: fixed;
-  top: 64px;          /* 👈 push below navbar */
+  top: 64px;               /* cover full screen including header */
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.089);
-  z-index: 89;
+  background: rgba(0, 0, 0, 0.45);   /* visible dim */
+  z-index: 199;                        /* just under sidebar (200) */
 }
 
 .sb-backdrop.open {
@@ -1881,6 +1885,11 @@ body {
 
 /* ══ TABLET  ≤ 900px ══ */
 @media (max-width: 900px) {
+
+  .btn-fix {
+  margin-left:160px;
+  margin-right:5px;
+}
   .hdr-left {
     display: flex;
     align-items: center;
@@ -1922,12 +1931,9 @@ body {
   }
 
   /* Sidebar: slide-over drawer */
-  .sidebar {
-    top: 0;
-    transform: translateX(-100%);
-    width: 300px;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
-  }
+.sidebar {
+  bottom: 54px;  /* keep — sidebar stops above mobile nav */
+}
 
   .sidebar.open {
     transform: translateX(0);
@@ -1981,6 +1987,11 @@ body {
 
 /* ══ MOBILE  ≤ 600px ══ */
 @media (max-width: 600px) {
+
+    .btn-fix {
+  margin-left:5px;
+  margin-right:5px;
+}
   #pg-metrics .sb-toggle,
   #pg-documents .sb-toggle {
     display: none;

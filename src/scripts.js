@@ -8,6 +8,8 @@ import {
   deleteDoc,
 } from "./lib/db.js";
 
+import { exportSummaryPDF, exportMetricsPDF } from "./pdfExport.js";
+
 /* ══════════════════════════════════════════════
    THEMES
 ══════════════════════════════════════════════ */
@@ -834,7 +836,7 @@ function countPathStages(doc) {
           <div class="det-entity">${esc(doc.entity)}</div>
           <div class="det-meta"><span class="det-meta-i">Created ${fmt(doc.createdAt)}</span></div>
         </div>
-       <button class="btn btn-primary btn-sm" onclick="exportDocPDF()">Export PDF</button> <button class="btn btn-ghost btn-sm" onclick="openSummary('${doc.id}')">⬡ Summary</button> 
+      <button class="btn btn-ghost btn-sm" onclick="openSummary('${doc.id}')">⬡ Summary</button> 
       </div>
       <div class="info-cards">
         <div class="ic"><div class="ic-lbl">Entity Name</div><div class="ic-val">${esc(doc.entity)}</div></div>
@@ -1844,6 +1846,20 @@ function openSummary(docId) {
       </div>
       ${totalWall > 0 ? `<div class="sum-total-row"><span style="color:var(--muted);font-size:12px">Total</span><span style="color:var(--red);font-size:12px;font-weight:500">${durStr(totalWall)} elapsed · ${durStr(totalWork)} working</span></div>` : ""}
     </div>`;
+ const _sumExportBtn = document.getElementById("sum-export-btn");
+  if (_sumExportBtn) {
+    // capture current closure vars for the export
+    const _evSnap = [...events];
+    const _twSnap = totalWall, _tkSnap = totalWork, _mwSnap = maxW, _bnSnap = bnLabel;
+    _sumExportBtn.onclick = async () => {
+      _sumExportBtn.textContent = "Exporting…"; _sumExportBtn.disabled = true;
+      try {
+        await exportSummaryPDF({ doc, events: _evSnap, totalWall: _twSnap, totalWork: _tkSnap, maxW: _mwSnap, bnLabel: _bnSnap });
+        toast("Summary PDF exported.");
+      } catch (e) { console.error(e); toast("Failed to export PDF.", true); }
+      finally { _sumExportBtn.textContent = "🖶"; _sumExportBtn.disabled = false; }
+    };
+  }
   openOv("ov-summary");
 }
 
@@ -2216,7 +2232,7 @@ function renderMetrics() {
   }).join("");
 
   $("metricsBody").innerHTML = `
-    <div class="ph-hd" style="margin-bottom:18px">Overview</div>
+    <div class="ph-hd" style="margin-bottom:18px">Overview</div> <button id="metrics-export-btn" class="btn btn-blue-out btn-sm" onclick="doExportMetrics()">⬇ Export PDF</button> <br>
     <div class="m-grid">
       <div class="m-card"><div class="m-lbl">Total Documents</div><div class="m-val m-red-m">${total}</div><div class="m-sub">All records</div></div>
       <div class="m-card"><div class="m-lbl">Complete</div><div class="m-val m-green">${complete}</div><div class="m-sub">Certificate released</div></div>
@@ -2240,6 +2256,18 @@ function renderMetrics() {
     </div>`;
 }
 
+
+async function doExportMetrics() {
+  const btn = $("metrics-export-btn");
+  if (btn) { btn.textContent = "Exporting…"; btn.disabled = true; }
+  try {
+    await exportMetricsPDF({ docs, ALL_STAGES, isComplete, isClosed });
+    toast("Metrics PDF exported.");
+  } catch (e) { console.error(e); toast("Failed to export PDF.", true); }
+  finally {
+    if (btn) { btn.textContent = "⬇ Export PDF"; btn.disabled = false; }
+  }
+}
 /* ══════════════════════════════════════════════
    REDACT
 ══════════════════════════════════════════════ */
@@ -2637,54 +2665,6 @@ async function markEmailVerified(docId) {
   }
 }
 
-async function exportToPDF(elementId, filename = "document.pdf") {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-
-  setLoading(true, "Generating PDF...");
-
-  try {
-    const canvas = await html2canvas(el, {
-      scale: 2, // better quality
-      useCORS: true
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pageWidth = 210;
-    const pageHeight = 297;
-
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    let y = 0;
-
-    if (imgHeight < pageHeight) {
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-    } else {
-      // multi-page support
-      let heightLeft = imgHeight;
-
-      while (heightLeft > 0) {
-        pdf.addImage(imgData, "PNG", 0, y, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        y -= pageHeight;
-
-        if (heightLeft > 0) pdf.addPage();
-      }
-    }
-
-    pdf.save(filename);
-  } catch (err) {
-    console.error(err);
-    toast("Failed to generate PDF", true);
-  } finally {
-    setLoading(false);
-  }
-}
 
 /* ══════════════════════════════════════════════
    EXPOSE GLOBALS (called from inline HTML onclick)
@@ -2729,6 +2709,7 @@ Object.assign(window, {
   markEmailVerified,
   applyFont,
   openSettings,
+  doExportMetrics,
 });
 
 /* ══════════════════════════════════════════════
