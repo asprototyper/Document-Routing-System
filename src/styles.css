@@ -1867,11 +1867,12 @@ body {
 .sb-backdrop {
   display: none;
   position: fixed;
-  inset: 0;
+  top: 64px;          /* 👈 push below navbar */
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.089);
   z-index: 89;
-
-
 }
 
 .sb-backdrop.open {
