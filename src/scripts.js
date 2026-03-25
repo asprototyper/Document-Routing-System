@@ -396,6 +396,7 @@ let docsDeleteTarget = null,
 let docsSearch = "",
   docsSort = "created_desc",
   docsFilter = "all";
+let sidebarManuallyClosed = false;
 
 /* ══════════════════════════════════════════════
    HELPERS
@@ -583,7 +584,12 @@ function goTo(name) {
   const mn = $("mobileNav");
   if (mn) mn.style.display = name === "pin" ? "none" : "flex";
   if (name === "metrics") renderMetrics();
-  if (name === "tracker") { renderSidebar(); if (window.innerWidth > 900) openSidebar(); }
+  if (name === "tracker") { 
+  renderSidebar(); 
+  if (window.innerWidth > 900 && !sidebarManuallyClosed) {
+    openSidebar();
+  }
+}
   if (name === "documents") renderDocsPage();
   if (name === "simple") renderSimple();
 }
@@ -2585,16 +2591,28 @@ document
   );
 
 function openSidebar() {
-  document.querySelector(".sidebar").classList.add("open");
-  $("sbBackdrop").classList.add("open");
+  const sb = document.querySelector(".sidebar");
+  if (sb) sb.classList.add("open");
+
   const mp = document.querySelector(".main-panel");
   if (mp) mp.classList.add("sb-open");
+
+  const bd = $("sbBackdrop");
+  if (bd) bd.classList.add("open");
+
+  sidebarManuallyClosed = false; // 👈 reset
 }
 function closeSidebar() {
-  document.querySelector(".sidebar").classList.remove("open");
-  $("sbBackdrop").classList.remove("open");
+  const sb = document.querySelector(".sidebar");
+  if (sb) sb.classList.remove("open");
+
   const mp = document.querySelector(".main-panel");
   if (mp) mp.classList.remove("sb-open");
+
+  const bd = $("sbBackdrop");
+  if (bd) bd.classList.remove("open");
+
+  sidebarManuallyClosed = true; // 👈 track user action
 }
 function toggleSidebar() {
   document.querySelector(".sidebar").classList.contains("open")
