@@ -8,7 +8,7 @@ import {
   deleteDoc,
 } from "./lib/db.js";
 
-import { exportSummaryPDF, exportMetricsPDF } from "./pdfExport.js";
+import { exportSummaryPDF, exportMetricsPDF } from "./pdfexport.js";
 
 /* ══════════════════════════════════════════════
    THEMES
