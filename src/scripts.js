@@ -147,31 +147,82 @@ function cycleTheme() {
    FONTS
 ══════════════════════════════════════════════ */
 const FONTS = {
-  modern:    { body: "Helvetica, Arial, sans-serif",     heading: "Helvetica, Arial, sans-serif" },
-  classic:   { body: "'EB Garamond', Georgia, serif",    heading: "'EB Garamond', Georgia, serif" },
-  technical: { body: "'DM Mono', monospace",             heading: "'Fraunces', serif" },
+  modern:    { body: "Helvetica, Arial, sans-serif",   heading: "Helvetica, Arial, sans-serif" },
+  classic:   { body: "'EB Garamond', Georgia, serif",  heading: "'EB Garamond', Georgia, serif" },
+  technical: { body: "'DM Mono', monospace",           heading: "'Fraunces', serif" },
 };
+
+const FONT_SIZES = [
+  { label: 'XS', px: '12px' },
+  { label: 'S',  px: '14px' },
+  { label: 'M',  px: '16px' },
+  { label: 'L',  px: '18px' },
+  { label: 'XL', px: '21px' },
+];
+
+function getCookie(key) {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
+  return m ? m[1] : null;
+}
+
+function setCookie(key, val) {
+  document.cookie = `${key}=${val};path=/;max-age=31536000`;
+}
 
 function applyFont(name) {
   const f = FONTS[name] || FONTS.technical;
-  document.documentElement.style.setProperty("--font-body", f.body);
-  document.documentElement.style.setProperty("--font-heading", f.heading);
+  document.documentElement.style.setProperty('--font-body', f.body);
+  document.documentElement.style.setProperty('--font-heading', f.heading);
   document.body.style.fontFamily = f.body;
-  document.querySelectorAll(".font-opt").forEach((el) =>
-    el.classList.toggle("on", el.id === "font-" + name)
+  document.querySelectorAll('.font-opt').forEach(el =>
+    el.classList.toggle('on', el.id === 'font-' + name)
   );
-  document.cookie = `font=${name};max-age=31536000;path=/`;
+  setCookie('font', name);
 }
 
-function loadFontCookie() {
-  const m = document.cookie.match(/(?:^|; )font=([^;]*)/);
-  return m ? m[1] : "technical";
+function applyFontSize(val) {
+  const idx = Math.max(0, Math.min(4, parseInt(val)));
+  const scales = [0.82, 0.91, 1, 1.1, 1.22];
+  const labels = ['XS', 'S', 'M', 'L', 'XL'];
+
+  document.body.style.zoom = scales[idx];  // ← body, not documentElement
+
+  const labelEl = document.getElementById('fsize-label');
+  if (labelEl) labelEl.textContent = labels[idx];
+
+  const slider = document.getElementById('fsize-slider');
+  if (slider) {
+    slider.value = idx;
+    const pct = (idx / 4) * 100;
+    slider.style.background =
+      `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
+  }
+
+  setCookie('fsize', idx);
+}
+
+function loadAppearance() {
+  applyFont(getCookie('font') ?? 'technical');
+  applyFontSize(getCookie('fsize') ?? '2');
 }
 
 function openSettings() {
-  openOv("ov-settings");
-}
+  const saved = parseInt(getCookie('fsize') ?? '2');
+  const slider = document.getElementById('fsize-slider');
+  const labelEl = document.getElementById('fsize-label');
+ 
 
+  if (slider) {
+    slider.value = saved;
+    const pct = (saved / 4) * 100;
+    slider.style.background =
+      `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
+    slider.oninput = () => applyFontSize(slider.value);
+  }
+  if (labelEl) labelEl.textContent = FONT_SIZES[saved].label;
+
+  openOv('ov-settings');
+}
 /* ══════════════════════════════════════════════
    STAGE DEFINITIONS
 ══════════════════════════════════════════════ */
@@ -2232,7 +2283,7 @@ function renderMetrics() {
   }).join("");
 
   $("metricsBody").innerHTML = `
-    <div class="ph-hd" style="margin-bottom:18px">Overview</div> <button id="metrics-export-btn" class="btn btn-blue-out btn-sm" onclick="doExportMetrics()">⬇ Export PDF</button> <br>
+    <div class="ph-hd" style="margin-bottom:18px">Overview</div> <button id="metrics-export-btn" class="btn btn-blue-out btn-sm btn-fix2" onclick="doExportMetrics()">🖶 Export PDF</button> <br>
     <div class="m-grid">
       <div class="m-card"><div class="m-lbl">Total Documents</div><div class="m-val m-red-m">${total}</div><div class="m-sub">All records</div></div>
       <div class="m-card"><div class="m-lbl">Complete</div><div class="m-val m-green">${complete}</div><div class="m-sub">Certificate released</div></div>
@@ -2716,5 +2767,5 @@ Object.assign(window, {
    BOOT
 ══════════════════════════════════════════════ */
 applyTheme(loadThemeCookie());
-applyFont(loadFontCookie());   
+loadAppearance();
 initData();

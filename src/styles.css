@@ -17,6 +17,7 @@
   --text: #e8e4dc;
   --muted: #7a766e;
   --dim: #4a4742;
+  --font-scale: 1;
 }
 
 * {
@@ -29,13 +30,15 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  font-size: calc(16px * var(--font-scale));
 }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: "DM Mono", monospace;
-  font-size: 16px;
+   
+  
 }
 
 .page {
@@ -276,6 +279,10 @@ body {
 
 /* ── BUTTONS ── */
 
+.btn-fix2 {
+  
+  margin-bottom:10px;
+}
 .btn-fix {
   margin-left:160px;
   margin-right:5px;
@@ -1364,7 +1371,8 @@ body {
 
 /* Form */
 .fg {
-  margin-bottom: 14px;
+  margin: 14px;
+  
 }
 
 .fg:last-child {
@@ -1883,6 +1891,70 @@ body {
   display: block;
 }
 
+.fsize-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fsize-tick-label {
+  color: var(--muted);
+  font-size: 13px;
+  flex-shrink: 0;
+  line-height: 1;
+  width: 16px;
+  text-align: center;
+}
+
+.fsize-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--b2);
+  outline: none;
+  cursor: pointer;
+}
+
+.fsize-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--red);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.fsize-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.2);
+}
+
+.fsize-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--red);
+  cursor: pointer;
+}
+
+.fsize-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 26px 0;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
 /* ══ TABLET  ≤ 900px ══ */
 @media (max-width: 900px) {
 
@@ -2182,7 +2254,10 @@ body {
   .overlay {
     align-items: flex-end;
   }
+  .modal.w560 {
 
+    padding:10px;
+  }
   .modal,
   .modal.w560,
   .modal.w640 {
