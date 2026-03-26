@@ -2284,7 +2284,7 @@ body {
 
 @media (min-width: 601px) {
   .mobile-nav {
-    display: none;
+    display: none !important;  /* ← add !important */
   }
 
   .btn-new-icon {
