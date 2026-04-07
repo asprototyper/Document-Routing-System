@@ -185,7 +185,10 @@ function applyFontSize(val) {
   const scales = [0.82, 0.91, 1, 1.1, 1.22];
   const labels = ['XS', 'S', 'M', 'L', 'XL'];
 
-  document.body.style.zoom = scales[idx];  // ← body, not documentElement
+  const onPin   = document.getElementById('pg-pin')?.classList.contains('active');
+  const onEmpty = document.querySelector('.empty-view')?.offsetParent !== null;
+
+  document.body.style.zoom = (onPin || onEmpty) ? 1 : scales[idx];
 
   const labelEl = document.getElementById('fsize-label');
   if (labelEl) labelEl.textContent = labels[idx];
@@ -637,14 +640,17 @@ function goTo(name) {
   const mn = $("mobileNav");
   if (mn) mn.style.display = name === "pin" ? "none" : "flex";
   if (name === "metrics") renderMetrics();
-  if (name === "tracker") { 
-  renderSidebar(); 
-  if (window.innerWidth > 900 && !sidebarManuallyClosed) {
-    openSidebar();
+  if (name === "tracker") {
+    renderSidebar();
+    if (window.innerWidth > 900 && !sidebarManuallyClosed) {
+      openSidebar();
+    }
   }
-}
   if (name === "documents") renderDocsPage();
   if (name === "simple") renderSimple();
+
+  // defer so active class is applied before zoom check runs
+  setTimeout(() => applyFontSize(getCookie('fsize') ?? '2'), 0);
 }
 
 /* ══════════════════════════════════════════════
