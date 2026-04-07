@@ -2546,6 +2546,13 @@ function docsCurrentPhase (doc) {
 function renderDocsPage () {
   const body = $('docsPageBody')
   if (!body) return
+  const activeEl = document.activeElement
+  const searchWasFocused =
+    !!activeEl &&
+    activeEl.classList &&
+    activeEl.classList.contains('dsp-search')
+  const searchSelStart = searchWasFocused ? activeEl.selectionStart : null
+  const searchSelEnd = searchWasFocused ? activeEl.selectionEnd : null
 
   let list = [...docs]
 
@@ -2656,6 +2663,19 @@ function renderDocsPage () {
         <div class="dsp-tbody">${rows}</div>
       </div>
     </div>`
+
+  if (searchWasFocused) {
+    const searchInput = body.querySelector('.dsp-search')
+    if (searchInput) {
+      searchInput.focus()
+      const start = Math.min(
+        searchSelStart ?? docsSearch.length,
+        docsSearch.length
+      )
+      const end = Math.min(searchSelEnd ?? start, docsSearch.length)
+      searchInput.setSelectionRange(start, end)
+    }
+  }
 }
 
 function docsOpenTracker (id) {

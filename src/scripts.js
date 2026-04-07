@@ -446,9 +446,9 @@ let apprDocId = null;
 let redactCtx = null;
 let docsDeleteTarget = null,
   docsPinEntry = "";
-let docsSearch = "",
-  docsSort = "created_desc",
-  docsFilter = "all";
+window.docsSearch = "";
+window.docsSort = "created_desc";
+window.docsFilter = "all";
 let sidebarManuallyClosed = false;
 
 /* ══════════════════════════════════════════════
@@ -2425,21 +2425,28 @@ function docsCurrentPhase(doc) {
 function renderDocsPage() {
   const body = $("docsPageBody");
   if (!body) return;
+  const activeEl = document.activeElement;
+  const searchWasFocused =
+    !!activeEl &&
+    activeEl.classList &&
+    activeEl.classList.contains("dsp-search");
+  const searchSelStart = searchWasFocused ? activeEl.selectionStart : null;
+  const searchSelEnd = searchWasFocused ? activeEl.selectionEnd : null;
 
   let list = [...docs];
-  if (docsFilter !== "all") {
+  if (window.docsFilter !== "all") {
     list = list.filter((d) => {
-      if (docsFilter === "complete") return isComplete(d);
-      if (docsFilter === "closed") return isClosed(d);
-      if (docsFilter === "pending")
+      if (window.docsFilter === "complete") return isComplete(d);
+      if (window.docsFilter === "closed") return isClosed(d);
+      if (window.docsFilter === "pending")
         return !d.preassess && !isComplete(d) && !isClosed(d);
-      if (docsFilter === "inprog")
+      if (window.docsFilter === "inprog")
         return d.preassess && !isComplete(d) && !isClosed(d);
       return true;
     });
   }
-  if (docsSearch.trim()) {
-    const q = docsSearch.trim().toLowerCase();
+  if (window.docsSearch.trim()) {
+    const q = window.docsSearch.trim().toLowerCase();
     list = list.filter(
       (d) =>
         d.entity.toLowerCase().includes(q) ||
@@ -2449,7 +2456,7 @@ function renderDocsPage() {
     );
   }
   list.sort((a, b) => {
-    switch (docsSort) {
+    switch (window.docsSort) {
       case "created_desc":
         return new Date(b.createdAt) - new Date(a.createdAt);
       case "created_asc":
@@ -2485,14 +2492,14 @@ function renderDocsPage() {
         closed: "Closed",
         pending: "Pending",
       };
-      return `<button class="dsp-chip ${docsFilter === f ? "on" : ""}" onclick="docsFilter='${f}';renderDocsPage()">${labels[f]} <span class="dsp-chip-ct">${counts[f]}</span></button>`;
+      return `<button class="dsp-chip ${window.docsFilter === f ? "on" : ""}" onclick="window.docsFilter='${f}';renderDocsPage()">${labels[f]} <span class="dsp-chip-ct">${counts[f]}</span></button>`;
     })
     .join("");
 
   const thSort = (label, asc, desc) => {
-    const active = docsSort === asc || docsSort === desc;
-    const arrow = docsSort === asc ? " ↑" : docsSort === desc ? " ↓" : "";
-    return `<div class="dsp-th ${active ? "dsp-th-on" : ""}" onclick="docsSort=docsSort==='${asc}'?'${desc}':'${asc}';renderDocsPage()">${label}${arrow}</div>`;
+    const active = window.docsSort === asc || window.docsSort === desc;
+    const arrow = window.docsSort === asc ? " ↑" : window.docsSort === desc ? " ↓" : "";
+    return `<div class="dsp-th ${active ? "dsp-th-on" : ""}" onclick="window.docsSort=window.docsSort==='${asc}'?'${desc}':'${asc}';renderDocsPage()">${label}${arrow}</div>`;
   };
 
   const rows = list.length
@@ -2534,14 +2541,14 @@ function renderDocsPage() {
     </div>`;
         })
         .join("")
-    : `<div class="dsp-empty"><div class="dsp-empty-ic">⬡</div><div>${docsSearch || docsFilter !== "all" ? "No documents match." : "No documents yet."}</div></div>`;
+    : `<div class="dsp-empty"><div class="dsp-empty-ic">⬡</div><div>${window.docsSearch || window.docsFilter !== "all" ? "No documents match." : "No documents yet."}</div></div>`;
 
   body.innerHTML = `
     <div class="dsp-toolbar">
       <div class="dsp-search-wrap">
         <svg class="dsp-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="dsp-search" type="text" placeholder="Search entity, contact, email…" value="${esc(docsSearch)}" oninput="docsSearch=this.value;renderDocsPage()">
-        ${docsSearch ? `<button class="dsp-clear" onclick="docsSearch='';renderDocsPage()">✕</button>` : ""}
+        <input class="dsp-search" type="text" placeholder="Search entity, contact, email…" value="${esc(window.docsSearch)}" oninput="window.docsSearch=this.value;renderDocsPage()">
+        ${window.docsSearch ? `<button class="dsp-clear" onclick="window.docsSearch='';renderDocsPage()">✕</button>` : ""}
       </div>
       <div class="dsp-chips">${filterBtns}</div>
       <div class="dsp-count">${list.length} of ${docs.length}</div>
@@ -2560,6 +2567,17 @@ function renderDocsPage() {
         <div class="dsp-tbody">${rows}</div>
       </div>
     </div>`;
+
+  if (searchWasFocused) {
+    const searchInput = body.querySelector(".dsp-search");
+    if (searchInput) {
+      searchInput.focus();
+      const len = (window.docsSearch || "").length;
+      const start = Math.min(searchSelStart ?? len, len);
+      const end = Math.min(searchSelEnd ?? start, len);
+      searchInput.setSelectionRange(start, end);
+    }
+  }
 }
 
 function docsOpenTracker(id) {
