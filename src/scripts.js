@@ -21,8 +21,8 @@ const THEMES = {
     "--s3": "#2e2b27",
     "--b1": "#2e2c29",
     "--b2": "#3a3835",
-    "--red": "#c0392b",
-    "--red-h": "#a93226",
+    "--red": "#be2a2a",
+    "--red-h": "#a92626",
     "--red-soft": "rgba(192,57,43,.09)",
     "--blue": "#2563a8",
     "--blue-h": "#1d4f8a",
@@ -41,8 +41,8 @@ const THEMES = {
     "--s3": "#e8e3dd",
     "--b1": "#ddd8d2",
     "--b2": "#c8c2bb",
-    "--red": "#b32208",
-    "--red-h": "#8f1a06",
+    "--red": "#d11414",
+    "--red-h": "#8f060d",
     "--red-soft": "rgba(179,34,8,.08)",
     "--blue": "#1a4f9c",
     "--blue-h": "#143d7a",
@@ -2491,14 +2491,14 @@ function renderDocsPage() {
         closed: "Closed",
         pending: "Pending",
       };
-      return `<button class="dsp-chip ${docsFilter === f ? "on" : ""}" onclick="docsFilter='${f}';renderDocsPage()">${labels[f]} <span class="dsp-chip-ct">${counts[f]}</span></button>`;
+      return `<button class="dsp-chip ${docsFilter === f ? "on" : ""}" onclick="setDocsFilter('${f}')">${labels[f]} <span class="dsp-chip-ct">${counts[f]}</span></button>`;
     })
     .join("");
 
   const thSort = (label, asc, desc) => {
     const active = docsSort === asc || docsSort === desc;
     const arrow = docsSort === asc ? " ↑" : docsSort === desc ? " ↓" : "";
-    return `<div class="dsp-th ${active ? "dsp-th-on" : ""}" onclick="docsSort=docsSort==='${asc}'?'${desc}':'${asc}';renderDocsPage()">${label}${arrow}</div>`;
+    return `<div class="dsp-th ${active ? "dsp-th-on" : ""}" onclick="setDocsSort('${asc}','${desc}')">${label}${arrow}</div>`;
   };
 
   const rows = list.length
@@ -2546,8 +2546,8 @@ function renderDocsPage() {
     <div class="dsp-toolbar">
       <div class="dsp-search-wrap">
         <svg class="dsp-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="dsp-search" type="text" placeholder="Search entity, contact, email…" value="${esc(docsSearch)}" oninput="docsSearch=this.value;renderDocsPage()">
-        ${docsSearch ? `<button class="dsp-clear" onclick="docsSearch='';renderDocsPage()">✕</button>` : ""}
+        <input class="dsp-search" type="text" placeholder="Search entity, contact, email…" value="${esc(docsSearch)}" oninput="setDocsSearch(this.value)">
+        ${docsSearch ? `<button class="dsp-clear" onclick="setDocsSearch('')">✕</button>` : ""}
       </div>
       <div class="dsp-chips">${filterBtns}</div>
       <div class="dsp-count">${list.length} of ${docs.length}</div>
@@ -2767,6 +2767,9 @@ Object.assign(window, {
   applyFont,
   openSettings,
   doExportMetrics,
+  setDocsFilter: (v) => { docsFilter = v; renderDocsPage(); },
+  setDocsSort: (asc, desc) => { docsSort = docsSort === asc ? desc : asc; renderDocsPage(); },
+  setDocsSearch: (v) => { docsSearch = v; renderDocsPage(); },
 });
 
 /* ══════════════════════════════════════════════
