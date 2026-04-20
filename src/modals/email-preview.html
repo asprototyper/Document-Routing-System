@@ -1,0 +1,22 @@
+<div class="overlay" id="ov-emailprev">
+  <div class="modal">
+    <div class="m-hd">
+      <div><h2 id="ep-title">Email Preview</h2><p>Review before sending</p></div>
+      <button class="m-close" onclick="closeOv('ov-emailprev')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="email-prev">
+        <div class="ep-field">To</div><div class="ep-val" id="ep-to">—</div>
+        <div class="ep-field">Subject</div><div class="ep-val" id="ep-subj">—</div>
+        <div class="ep-body" id="ep-body">—</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">Sending requires backend setup.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-emailprev')">Close</button>
+        <button class="btn btn-primary" id="ep-send-btn">Mark as Sent</button>
+      </div>
+    </div>
+  </div>
+</div>

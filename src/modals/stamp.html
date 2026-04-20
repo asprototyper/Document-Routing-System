@@ -1,0 +1,34 @@
+<div class="overlay" id="ov-stamp">
+  <div class="modal">
+    <div class="m-hd">
+      <div><h2>Record Stage</h2><p id="sm-subtitle">Confirm timestamp</p></div>
+      <button class="m-close" onclick="closeOv('ov-stamp')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="stmp-info"><strong id="sm-name"></strong><span id="sm-hint"></span></div>
+      <div class="fg" id="sm-passedby-grp" style="display:none">
+        <div class="fl">Passed By <span class="req">*</span></div>
+        <input type="text" id="sm-passedby" class="fi" placeholder="Name of person who passed it" maxlength="80">
+        <div class="ferr" id="sme-passedby">Required.</div>
+      </div>
+      <div class="fg" id="sm-sentby-grp" style="display:none">
+        <div class="fl">Sent By (CDO II) <span class="req">*</span></div>
+        <input type="text" id="sm-sentby" class="fi" placeholder="Name of CDO II" maxlength="80">
+        <div class="ferr" id="sme-sentby">Required.</div>
+      </div>
+      <div class="fg">
+        <div class="fl">Date &amp; Time <span class="req">*</span></div>
+        <input type="datetime-local" id="sm-dt" class="fi">
+        <div class="ferr" id="sme-dt">Required.</div>
+        <div class="ferr" id="sme-future">Cannot be a future time.</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note" id="sm-note"></span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-stamp')">Cancel</button>
+        <button class="btn btn-primary" onclick="doStamp()">Record Timestamp</button>
+      </div>
+    </div>
+  </div>
+</div>

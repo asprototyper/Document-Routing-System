@@ -1,0 +1,140 @@
+﻿/* â”€â”€ PIN â”€â”€ */
+#pg-pin {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 45%,
+    rgba(192, 57, 43, 0.04) 0%,
+    transparent 70%
+  );
+}
+
+.pin-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeUp 0.45s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pin-logo {
+  font-family: "Fraunces", serif;
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--red);
+  margin-bottom: 6px;
+}
+
+.pin-logo em {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.pin-tagline {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 44px;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 38px;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--b2);
+  background: transparent;
+  transition: all 0.18s;
+}
+
+.pin-dot.filled {
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: 0 0 6px rgba(192, 57, 43, 0.25);
+}
+
+.pin-dot.shake {
+  background: var(--red);
+  border-color: var(--red);
+  animation: shake 0.28s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  33% {
+    transform: translateX(-5px);
+  }
+
+  66% {
+    transform: translateX(5px);
+  }
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+  width: 270px;
+}
+
+.pin-key {
+  height: 72px;
+  background: var(--s1);
+  border: 2px solid var(--b1);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: "DM Mono", monospace;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.11s;
+}
+
+.pin-key:hover {
+  background: var(--s2);
+  border-color: var(--b2);
+  color: var(--red);
+}
+
+.pin-key:active {
+  transform: scale(0.94);
+}
+
+.pin-key.del {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.pin-key.blank {
+  visibility: hidden;
+}
+
+.pin-err {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--red);
+  letter-spacing: 0.05em;
+  height: 20px;
+  text-align: center;
+}
+

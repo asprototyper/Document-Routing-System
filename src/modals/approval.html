@@ -1,0 +1,37 @@
+<div class="overlay" id="ov-approval">
+  <div class="modal">
+    <div class="m-hd">
+      <div><h2>Certificate Decision</h2><p>Record receipt and outcome (CDO II)</p></div>
+      <button class="m-close" onclick="closeOv('ov-approval')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <div class="fl">Date &amp; Time Received <span class="req">*</span></div>
+        <input type="datetime-local" id="appr-dt" class="fi">
+        <div class="ferr" id="appre-dt">Required.</div>
+        <div class="ferr" id="appre-future">Cannot be a future time.</div>
+      </div>
+      <div class="fg">
+        <div class="fl">Outcome <span class="req">*</span></div>
+        <div class="appr-grid">
+          <div class="appr-opt" id="appr-yes" onclick="pickAppr('approved')">
+            <div class="appr-lbl a">Approved</div>
+            <div class="appr-desc">Proceed to Phase 5A → 6A</div>
+          </div>
+          <div class="appr-opt" id="appr-no" onclick="pickAppr('disapproved')">
+            <div class="appr-lbl b">Disapproved</div>
+            <div class="appr-desc">Proceed to Phase 5B → 6B</div>
+          </div>
+        </div>
+        <div class="ferr" id="appre-result">Please select an outcome.</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note"></span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-approval')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAppr()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>

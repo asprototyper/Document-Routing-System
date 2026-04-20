@@ -1,0 +1,47 @@
+<div class="overlay" id="ov-settings">
+  <div class="modal w560">
+    <div class="m-hd">
+      <div><h2>Settings</h2><p>Appearance preferences</p></div>
+      <button class="m-close" onclick="closeOv('ov-settings')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <div class="fl">Font Style</div>
+        <div class="font-opt-grid">
+          <div class="font-opt" id="font-modern" onclick="applyFont('modern')">
+            <div class="font-opt-name">Modern</div>
+            <div class="font-opt-preview" style="font-family:Helvetica,Arial,sans-serif">Aa — Clean &amp; minimal</div>
+          </div>
+          <div class="font-opt" id="font-classic" onclick="applyFont('classic')">
+            <div class="font-opt-name">Classic</div>
+            <div class="font-opt-preview" style="font-family:'EB Garamond',Georgia,serif">Aa — Traditional &amp; elegant</div>
+          </div>
+          <div class="font-opt" id="font-technical" onclick="applyFont('technical')">
+            <div class="font-opt-name">Technical</div>
+            <div class="font-opt-preview" style="font-family:'DM Mono',monospace">Aa — Current default</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:18px">
+      <div class="fl" style="justify-content:space-between">
+        <span>Font Size</span>
+        <span id="fsize-label" style="color:var(--text);font-size:13px">Medium</span>
+      </div>
+      <div class="fsize-slider-wrap">
+        <span class="fsize-tick-label">A</span>
+        <input type="range" id="fsize-slider" class="fsize-slider" min="0" max="4" step="1" value="2">
+        <span class="fsize-tick-label" style="font-size:20px">A</span>
+      </div>
+      <div class="fsize-ticks">
+        <span>XS</span><span>S</span><span>M</span><span>L</span><span>XL</span>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">Font preference is saved automatically.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-settings')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

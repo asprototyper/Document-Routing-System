@@ -1,0 +1,37 @@
+<div class="overlay" id="ov-doc-delete">
+  <div class="modal">
+    <div class="m-hd">
+      <div>
+        <h2 style="color:var(--red)">Delete Document</h2>
+        <p>Enter PIN to confirm deletion</p>
+      </div>
+      <button class="m-close" onclick="closeOv('ov-doc-delete')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="stmp-info" style="border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.04);margin-bottom:18px">
+        <strong id="del-doc-name" style="color:var(--red)"></strong>
+        <span>This document and all its recorded stages will be permanently deleted.</span>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;letter-spacing:.05em">Enter PIN to confirm</div>
+        <div class="pin-dots" id="del-pin-dots" style="justify-content:center;margin-bottom:14px">
+          <div class="pin-dot"></div><div class="pin-dot"></div>
+          <div class="pin-dot"></div><div class="pin-dot"></div>
+        </div>
+        <div class="pin-pad" style="max-width:220px;margin:0 auto">
+          <button class="pin-key" onclick="delDocKey('1')">1</button><button class="pin-key" onclick="delDocKey('2')">2</button><button class="pin-key" onclick="delDocKey('3')">3</button>
+          <button class="pin-key" onclick="delDocKey('4')">4</button><button class="pin-key" onclick="delDocKey('5')">5</button><button class="pin-key" onclick="delDocKey('6')">6</button>
+          <button class="pin-key" onclick="delDocKey('7')">7</button><button class="pin-key" onclick="delDocKey('8')">8</button><button class="pin-key" onclick="delDocKey('9')">9</button>
+          <button class="pin-key blank"></button><button class="pin-key" onclick="delDocKey('0')">0</button><button class="pin-key del" onclick="delDocKey('del')">⌫</button>
+        </div>
+        <div class="pin-err" id="del-pin-err" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">This action is irreversible.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-doc-delete')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

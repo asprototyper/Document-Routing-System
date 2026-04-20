@@ -1,0 +1,50 @@
+<div class="overlay" id="ov-create">
+  <div class="modal w560">
+    <div class="m-hd">
+      <div><h2>New Document</h2><p>Fields marked * are required</p></div>
+      <button class="m-close" onclick="closeOv('ov-create')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="fg2">
+        <div class="fg">
+          <div class="fl">Entity Name <span class="req">*</span></div>
+          <input type="text" id="f-entity" class="fi" placeholder="Company or Entity Name" maxlength="120" autocomplete="off">
+          <div class="ferr" id="fe-entity">Entity name is required.</div>
+        </div>
+        <div class="fg">
+          <div class="fl">Contact Person <span class="req">*</span></div>
+          <input type="text" id="f-contact" class="fi" placeholder="Name of contact person" maxlength="120" autocomplete="off">
+          <div class="ferr" id="fe-contact">Contact person is required.</div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl">Email Address <span class="req">*</span></div>
+        <div class="email-row">
+          <input type="email" id="f-email" class="fi" placeholder="client@email.com" autocomplete="off">
+          <button class="btn btn-ghost btn-sm" onclick="openEmailPrev('verify', null)">Send Verification</button>
+        </div>
+        <div class="ferr" id="fe-email">A valid email address is required.</div>
+        <div class="cb-row">
+          <input type="checkbox" id="f-emailVerif" onchange="onCbChange()">
+          <label class="cb-lbl" id="cb-lbl" for="f-emailVerif">Email Verified</label>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl">Remarks</div>
+        <textarea id="f-remarks" class="fta" placeholder="Optional notes…" maxlength="500"></textarea>
+      </div>
+      <div class="fdiv"></div>
+      <div class="fg">
+        <div class="fl">Date &amp; Time Created</div>
+        <div class="fro" id="f-created">— set automatically —</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note">Timestamp set automatically on save.</span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-create')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDoc()">Create Document</button>
+      </div>
+    </div>
+  </div>
+</div>

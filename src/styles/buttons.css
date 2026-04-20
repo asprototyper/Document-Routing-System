@@ -1,0 +1,76 @@
+﻿/*BUTTONS*/
+
+.btn-fix2 {
+  
+  margin-bottom:10px;
+}
+.btn-fix {
+  margin-left:160px;
+  margin-right:5px;
+}
+.btn {
+  font-family: "DM Mono", monospace;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: 2px solid;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+
+.btn-primary {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn-primary2 {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: var(--red-h);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--b1);
+  color: var(--muted);
+}
+
+.btn-ghost:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.btn-blue-out {
+  background: var(--blue-soft);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.btn-blue-out:hover {
+  background: rgba(37, 99, 168, 0.15);
+}
+
+.btn-sm {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.btn-xs {
+  padding: 5px 11px;
+  font-size: 12px;
+}
+
+.btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+

@@ -1,0 +1,54 @@
+﻿:root {
+  --bg: #0f0e0c;
+  --s1: #1a1916;
+  --s2: #242220;
+  --s3: #2e2b27;
+  --b1: #2e2c29;
+  --b2: #3a3835;
+  --red: #c0392b;
+  --red-h: #a93226;
+  --red-soft: rgba(192, 57, 43, 0.09);
+  --blue: #2563a8;
+  --blue-h: #1d4f8a;
+  --blue-soft: rgba(37, 99, 168, 0.09);
+  --green: #1a7a4a;
+  --green-soft: rgba(26, 122, 74, 0.09);
+  --warn: #b45309;
+  --text: #e8e4dc;
+  --muted: #7a766e;
+  --dim: #4a4742;
+  --font-scale: 1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-size: calc(16px * var(--font-scale));
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "DM Mono", monospace;
+   
+  
+}
+
+.page {
+  display: none;
+  height: 100vh;
+  flex-direction: column;
+  overflow: relative;
+}
+
+.page.active {
+  display: flex;
+}
+

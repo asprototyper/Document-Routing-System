@@ -10,210 +10,71 @@ import {
 
 import { exportSummaryPDF, exportMetricsPDF } from "./pdfexport.js";
 
-/* ══════════════════════════════════════════════
-   THEMES
-══════════════════════════════════════════════ */
-const THEMES = {
-  dark: {
-    "--bg": "#0f0e0c",
-    "--s1": "#1a1916",
-    "--s2": "#242220",
-    "--s3": "#2e2b27",
-    "--b1": "#2e2c29",
-    "--b2": "#3a3835",
-    "--red": "#be2a2a",
-    "--red-h": "#a92626",
-    "--red-soft": "rgba(192,57,43,.09)",
-    "--blue": "#2563a8",
-    "--blue-h": "#1d4f8a",
-    "--blue-soft": "rgba(37,99,168,.09)",
-    "--green": "#1a7a4a",
-    "--green-soft": "rgba(26,122,74,.09)",
-    "--warn": "#b45309",
-    "--text": "#e8e4dc",
-    "--muted": "#7a766e",
-    "--dim": "#4a4742",
-  },
-  light: {
-    "--bg": "#f5f3f0",
-    "--s1": "#ffffff",
-    "--s2": "#f0ece8",
-    "--s3": "#e8e3dd",
-    "--b1": "#ddd8d2",
-    "--b2": "#c8c2bb",
-    "--red": "#d11414",
-    "--red-h": "#8f060d",
-    "--red-soft": "rgba(179,34,8,.08)",
-    "--blue": "#1a4f9c",
-    "--blue-h": "#143d7a",
-    "--blue-soft": "rgba(26,79,156,.08)",
-    "--green": "#145c35",
-    "--green-soft": "rgba(20,92,53,.08)",
-    "--warn": "#92560a",
-    "--text": "#1c1208",
-    "--muted": "#5a4e42",
-    "--dim": "#9a8f84",
-  },
-  slate: {
-    "--bg": "#0d1117",
-    "--s1": "#161b22",
-    "--s2": "#1c2128",
-    "--s3": "#222830",
-    "--b1": "#21262d",
-    "--b2": "#30363d",
-    "--red": "#f85149",
-    "--red-h": "#da3633",
-    "--red-soft": "rgba(248,81,73,.09)",
-    "--blue": "#388bfd",
-    "--blue-h": "#1f6feb",
-    "--blue-soft": "rgba(56,139,253,.09)",
-    "--green": "#3fb950",
-    "--green-soft": "rgba(63,185,80,.09)",
-    "--warn": "#d29922",
-    "--text": "#e6edf3",
-    "--muted": "#8b949e",
-    "--dim": "#484f58",
-  },
-  warm: {
-    "--bg": "#1a1410",
-    "--s1": "#231d18",
-    "--s2": "#2d2520",
-    "--s3": "#372e27",
-    "--b1": "#3d342c",
-    "--b2": "#4d4238",
-    "--red": "#e05c2a",
-    "--red-h": "#c44d21",
-    "--red-soft": "rgba(224,92,42,.09)",
-    "--blue": "#5b8dd9",
-    "--blue-h": "#4a7bc8",
-    "--blue-soft": "rgba(91,141,217,.09)",
-    "--green": "#5a9e6f",
-    "--green-soft": "rgba(90,158,111,.09)",
-    "--warn": "#d4a017",
-    "--text": "#f0e6d8",
-    "--muted": "#8a7a6a",
-    "--dim": "#5a4a3a",
-  },
-};
+import {
+  THEMES,
+  LOGOS,
+  LOGOS2,
+  applyTheme,
+  loadThemeCookie,
+  cycleTheme,
+} from "./js/config/themes.js";
 
-const LOGOS = {
-  dark: "img/ntc-logo-dark.png",
-  light: "img/ntc-logo-light.png",
-  slate: "img/ntc-logo-slate.png",
-  warm: "img/ntc-logo-warm.png",
-};
-const LOGOS2 = {
-  dark: "img/ntc-logo2-dark.png",
-  light: "img/ntc-logo2-light.png",
-  slate: "img/ntc-logo2-slate.png",
-  warm: "img/ntc-logo2-warm.png",
-};
+import {
+  FONTS,
+  FONT_SIZES,
+  getCookie,
+  setCookie,
+  applyFont,
+  applyFontSize,
+  loadAppearance,
+} from "./js/config/fonts.js";
 
-function applyTheme(name) {
-  const t = THEMES[name] || THEMES.light;
-  const root = document.documentElement.style;
-  Object.entries(t).forEach(([k, v]) => root.setProperty(k, v));
-  document
-    .querySelectorAll(".theme-btn")
-    .forEach((b) => b.classList.toggle("on", b.dataset.theme === name));
-  const pinlogo = document.getElementById("pinlogo");
-  if (pinlogo && LOGOS2[name]) pinlogo.src = LOGOS2[name];
+import {
+  PHASE1A,
+  PHASE1B,
+  PHASE2,
+  PHASE3_LEGAL,
+  PHASE3_TECH,
+  PHASE3_FIN,
+  PHASE3A,
+  PHASE3B,
+  PHASE4A,
+  PHASE4B,
+  PHASE5,
+  PHASE5A,
+  PHASE5B,
+  PHASE6A,
+  PHASE6B,
+  PHASE7,
+  PHASE8,
+  ALL_STAGES,
+  TRACK_MAP,
+} from "./js/config/stages.js";
 
-  const logo = document.getElementById("logo");
-  if (logo && LOGOS[name]) logo.src = LOGOS[name];
+import {
+  $,
+  esc,
+  genId,
+  fmt,
+  nowLocal,
+  setLoading,
+  toast,
+  workMs,
+} from "./js/helpers.js";
 
-  const logo2 = document.getElementById("logo2");
-  if (logo2 && LOGOS2[name]) logo2.src = LOGOS2[name];
+import {
+  isComplete,
+  isClosed,
+  docBadge,
+  lastLabel,
+} from "./js/status.js";
 
-  const logo3 = document.getElementById("logo3");
-  if (logo3 && LOGOS2[name]) logo3.src = LOGOS2[name];
-
-  const logo4 = document.getElementById("logo4");
-  if (logo4 && LOGOS2[name]) logo4.src = LOGOS2[name];
-  document.cookie = `theme=${name};max-age=31536000;path=/`;
-}
-function loadThemeCookie() {
-  const m = document.cookie.match(/(?:^|; )theme=([^;]*)/);
-  return m ? m[1] : "light";
-}
-const _themeOrder = ["light", "dark", "slate", "warm"];
-function cycleTheme() {
-  const cur = document.querySelector(".theme-btn.on")?.dataset.theme || "light";
-  const next = _themeOrder[(_themeOrder.indexOf(cur) + 1) % _themeOrder.length];
-  applyTheme(next);
-}
-
-/* ══════════════════════════════════════════════
-   FONTS
-══════════════════════════════════════════════ */
-const FONTS = {
-  modern:    { body: "Helvetica, Arial, sans-serif",   heading: "Helvetica, Arial, sans-serif" },
-  classic:   { body: "'EB Garamond', Georgia, serif",  heading: "'EB Garamond', Georgia, serif" },
-  technical: { body: "'DM Mono', monospace",           heading: "'Fraunces', serif" },
-};
-
-const FONT_SIZES = [
-  { label: 'XS', px: '12px' },
-  { label: 'S',  px: '14px' },
-  { label: 'M',  px: '16px' },
-  { label: 'L',  px: '18px' },
-  { label: 'XL', px: '21px' },
-];
-
-function getCookie(key) {
-  const m = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
-  return m ? m[1] : null;
-}
-
-function setCookie(key, val) {
-  document.cookie = `${key}=${val};path=/;max-age=31536000`;
-}
-
-function applyFont(name) {
-  const f = FONTS[name] || FONTS.technical;
-  document.documentElement.style.setProperty('--font-body', f.body);
-  document.documentElement.style.setProperty('--font-heading', f.heading);
-  document.body.style.fontFamily = f.body;
-  document.querySelectorAll('.font-opt').forEach(el =>
-    el.classList.toggle('on', el.id === 'font-' + name)
-  );
-  setCookie('font', name);
-}
-
-function applyFontSize(val) {
-  const idx = Math.max(0, Math.min(4, parseInt(val)));
-  const scales = [0.82, 0.91, 1, 1.1, 1.22];
-  const labels = ['XS', 'S', 'M', 'L', 'XL'];
-
-  const onPin   = document.getElementById('pg-pin')?.classList.contains('active');
-  const onEmpty = document.querySelector('.empty-view')?.offsetParent !== null;
-
-  document.body.style.zoom = (onPin || onEmpty) ? 1 : scales[idx];
-
-  const labelEl = document.getElementById('fsize-label');
-  if (labelEl) labelEl.textContent = labels[idx];
-
-  const slider = document.getElementById('fsize-slider');
-  if (slider) {
-    slider.value = idx;
-    const pct = (idx / 4) * 100;
-    slider.style.background =
-      `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
-  }
-
-  setCookie('fsize', idx);
-}
-
-function loadAppearance() {
-  applyFont(getCookie('font') ?? 'technical');
-  applyFontSize(getCookie('fsize') ?? '2');
-}
+/* THEMES, FONTS, STAGES, HELPERS, STATUS were extracted to ./js/ — see imports above. */
 
 function openSettings() {
-  const saved = parseInt(getCookie('fsize') ?? '2');
-  const slider = document.getElementById('fsize-slider');
-  const labelEl = document.getElementById('fsize-label');
- 
+  const saved = parseInt(getCookie("fsize") ?? "2");
+  const slider = document.getElementById("fsize-slider");
+  const labelEl = document.getElementById("fsize-label");
 
   if (slider) {
     slider.value = saved;
@@ -224,216 +85,8 @@ function openSettings() {
   }
   if (labelEl) labelEl.textContent = FONT_SIZES[saved].label;
 
-  openOv('ov-settings');
+  openOv("ov-settings");
 }
-/* ══════════════════════════════════════════════
-   STAGE DEFINITIONS
-══════════════════════════════════════════════ */
-const PHASE1A = [
-  {
-    key: "p1a_eng_accept",
-    label: "Accept Application and Provide copy to the Client",
-    hint: "Engineer",
-  },
-];
-const PHASE2 = [
-  {
-    key: "p2_cdo_scan",
-    label: "Record Acceptance and Scan Documents",
-    hint: "CDO II",
-  },
-  {
-    key: "p2_cdo_route",
-    label: "Route Application",
-    hint: "CDO II — unlocks Phase 3",
-  },
-];
-const PHASE1B = [
-  {
-    key: "p1b_return",
-    label: "Return Application — Record Date & Time Returned",
-    hint: "Stamp the exact date and time the application was returned to the applicant.",
-  },
-];
-const PHASE3_LEGAL = [
-  {
-    key: "p3_legal_recv",
-    label: "Received by Legal Branch",
-    hint: "For legal evaluation and findings",
-  },
-  { key: "p3_legal_back", label: "Received from Legal Branch", hint: "" },
-];
-const PHASE3_TECH = [
-  {
-    key: "p3_tech_recv",
-    label: "Received by SID — Technical",
-    hint: "For technical evaluation and findings",
-  },
-  { key: "p3_tech_back", label: "Received from SID", hint: "Technical track" },
-];
-const PHASE3_FIN = [
-  {
-    key: "p3_fin_recv",
-    label: "Received by SID — Financial",
-    hint: "For financial evaluation and findings",
-  },
-  { key: "p3_fin_back", label: "Received from SID", hint: "Financial track" },
-];
-const PHASE3A = [
-  {
-    key: "p3a_endorse",
-    label: "Application Endorsed to SID",
-    hint: "All compliant — no NOD",
-  },
-];
-const PHASE3B = [
-  { key: "p3b_nod", label: "Notice of Deficiency Issued", hint: "" },
-  { key: "p3b_endorse", label: "Application and Nod endorsed to SID", hint: "" },
-];
-const PHASE4A = [
-  {
-    key: "p4a_cdo_accept",
-    label: "Record Receipt of Documents",
-    hint: "CDO II",
-  },
-
-  
-  {
-    key: "p4a_eng_briefer",
-    label: "Received by Engineer — Briefer prep & Certificate drafting",
-    hint: "Engineer",
-  },
-  {
-    key: "p4a_chief_review",
-    label: "Received by Chief-SID for Review",
-    hint: "Chief-SID",
-  },
-  {
-    key: "p4a_dir_rec",
-    label: "Received by Director-RB — Recommendation",
-    hint: "Director-RB",
-  },
-  { key: "p4a_odc", label: "Received by ODC", hint: "", isApproval: true },
-];
-
-const PHASE4B = [
-  { key: "p4b_cdo_accept", label: "Record Receipt of Documents", hint: "CDO II" },
-];
-const PHASE5 = [
-  {
-    key: "p5_receipt",
-    label: "Record Receipt of Approval/Disapproval",
-    hint: "CDO II",
-    isCertDecision: true,
-  },
-];
-const PHASE5A = [
-  {
-    key: "p5a_eng_soa",
-    label: "Received by Engineer — Prepare SOA",
-    hint: "Engineer",
-  },
-  {
-    key: "p5a_chief_soa",
-    label: "Received by Chief-SID — Review SOA",
-    hint: "Chief-SID",
-  },
-  {
-    key: "p5a_dir_soa",
-    label: "Received by Director-RB — Approval of SOA",
-    hint: "Director-RB",
-  },
-];
-const PHASE5B = [
-  {
-    key: "p5b_chief_nod",
-    label: "Received by Chief-SID — Draft Notice of Disapproval",
-    hint: "Chief-SID",
-  },
-  {
-    key: "p5b_dir_review",
-    label: "Received by Director-RB — Review Notice",
-    hint: "Director-RB",
-  },
-  {
-    key: "p5b_odc_issue",
-    label: "Received by ODC — Issue Notice of Disapproval",
-    hint: "ODC",
-  },
-];
-const PHASE6A = [
-  {
-    key: "p6a_recv_dir",
-    label: "Received Application from Director-RB",
-    hint: "CDO II",
-  },
-];
-const PHASE6B = [
-  {
-    key: "p6b_recv_odc",
-    label: "Received Application from ODC",
-    hint: "CDO II",
-  },
-];
-const PHASE7 = [{ key: "p7_payment", label: "Payment Stage", hint: "Client" }];
-const PHASE8 = [
-  {
-    key: "p8_recv_client",
-    label: "Received Application from Client",
-    hint: "CDO II",
-  },
-  {
-    key: "p8_release",
-    label: "Release Certificate to Applicant",
-    hint: "CDO II",
-  },
-  {
-    key: "p8_scan",
-    label: "Record Release and Scan Documents",
-    hint: "CDO II",
-  },
-];
-
-const ALL_STAGES = [
-  ...PHASE1A,
-  ...PHASE1B,
-  ...PHASE2,
-  ...PHASE3_LEGAL,
-  ...PHASE3_TECH,
-  ...PHASE3_FIN,
-  ...PHASE3A,
-  ...PHASE3B,
-  ...PHASE4A,
-  ...PHASE4B,
-  ...PHASE5,
-  ...PHASE5A,
-  ...PHASE5B,
-  ...PHASE6A,
-  ...PHASE6B,
-  ...PHASE7,
-  ...PHASE8,
-];
-
-const TRACK_MAP = {
-  p1a: PHASE1A,
-  p1b: PHASE1B,
-  p2: PHASE2,
-  p3_legal: PHASE3_LEGAL,
-  p3_tech: PHASE3_TECH,
-  p3_fin: PHASE3_FIN,
-  p3a: PHASE3A,
-  p3b: PHASE3B,
-  p4a: PHASE4A,
-  p4b: PHASE4B,
-  p5: PHASE5,
-  p5a: PHASE5A,
-  p5b: PHASE5B,
-  p6a: PHASE6A,
-  p6b: PHASE6B,
-  p7: PHASE7,
-  p8: PHASE8,
-};
-
 /* ══════════════════════════════════════════════
    APP STATE
 ══════════════════════════════════════════════ */
@@ -453,82 +106,6 @@ let docsSearch = "",
   docsSort = "created_desc",
   docsFilter = "all";
 let sidebarManuallyClosed = false;
-
-/* ══════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════ */
-const $ = (id) => document.getElementById(id);
-const esc = (s) =>
-  String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-const genId = () => crypto.randomUUID();
-const fmt = (iso) =>
-  iso
-    ? new Date(iso).toLocaleString("en-PH", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : "—";
-const nowLocal = () => {
-  const n = new Date();
-  n.setSeconds(0, 0);
-  return new Date(n - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-};
-
-function setLoading(on, msg = "Saving…") {
-  let el = document.getElementById("globalLoader");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "globalLoader";
-    el.style.cssText = `position:fixed;bottom:70px;right:22px;background:var(--s1);
-      border:1px solid var(--b1);border-radius:6px;padding:10px 16px;
-      font-size:13px;color:var(--muted);z-index:600;opacity:0;
-      transition:opacity .2s;pointer-events:none;font-family:"DM Mono",monospace`;
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity = on ? "1" : "0";
-}
-
-function toast(msg, err = false) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.className = "toast" + (err ? " terr" : "");
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2800);
-}
-
-function workMs(a, b) {
-  if (!a || !b) return 0;
-  let s = new Date(a),
-    e = new Date(b),
-    ms = 0;
-  if (e <= s) return 0;
-  let c = new Date(s);
-  while (c < e) {
-    const d = c.getDay();
-    if (d >= 1 && d <= 5) {
-      const ws = new Date(c);
-      ws.setHours(8, 0, 0, 0);
-      const we = new Date(c);
-      we.setHours(17, 0, 0, 0);
-      const ss = c < ws ? ws : c,
-        se = e < we ? e : we;
-      if (se > ss) ms += se - ss;
-    }
-    c = new Date(c);
-    c.setHours(0, 0, 0, 0);
-    c.setDate(c.getDate() + 1);
-  }
-  return ms;
-}
 
 /* ══════════════════════════════════════════════
    INIT
@@ -654,39 +231,6 @@ function goTo(name) {
 }
 
 /* ══════════════════════════════════════════════
-   DOC STATUS
-══════════════════════════════════════════════ */
-function isComplete(doc) {
-  return !!doc.stages["p8_scan"];
-}
-function isClosed(doc) {
-  const p1bClosed = doc.preassess === "incomplete" && !!doc.stages["p1b_return"];
-  const p4bClosed = (doc.nod_legal || doc.nod_tech || doc.nod_fin) && !!doc.p3b_notif_ts && !!doc.p3b_return_ts;
-  const p6bClosed = doc.certOutcome === "disapproved" && !!doc.p6b_notif_ts && !!doc.p6b_return_ts;
-  return p1bClosed || p4bClosed || p6bClosed;
-}
-function docBadge(doc) {
-  if (isComplete(doc))
-    return `<span class="badge bdg-complete">Complete</span>`;
-  if (isClosed(doc)) return `<span class="badge bdg-closed">Closed</span>`;
-  if (!doc.preassess) return `<span class="badge bdg-prog">Pending</span>`;
-  return `<span class="badge bdg-prog">In Progress</span>`;
-}
-function lastLabel(doc) {
-  if (isComplete(doc)) return "✓ Certificate Released";
-  if (isClosed(doc)) {
-    if (doc.preassess === "incomplete" && doc.stages["p1b_return"])
-      return "Closed — Application Returned (Phase 1B)";
-    if (doc.p6b_return_ts) return "Closed — Disapproved & Returned";
-    if (doc.p3b_return_ts) return "Closed — NOD Returned";
-  }
-  for (let i = ALL_STAGES.length - 1; i >= 0; i--)
-    if (doc.stages[ALL_STAGES[i].key]) return ALL_STAGES[i].label;
-  if (doc.preassess) return `Pre-Assessment: ${doc.preassess}`;
-  return "Awaiting Pre-Assessment";
-}
-
-/* ══════════════════════════════════════════════
    SIDEBAR
 ══════════════════════════════════════════════ */
 function renderSidebar() {
@@ -729,10 +273,22 @@ $("sbSearch").addEventListener("input", renderSidebar);
 ══════════════════════════════════════════════ */
 function selDoc(id) {
   selId = id;
+  // Jump to the tracker page if we're viewing it from elsewhere
+  // (Documents list, Metrics, Simple, etc.) — otherwise the detail
+  // pane updates but stays hidden behind the active page.
+  const tracker = $("pg-tracker");
+  if (id && tracker && !tracker.classList.contains("active")) {
+    goTo("tracker");
+  }
   renderSidebar();
-  $("emptyView").style.display = "none";
-  $("docDetail").classList.add("vis");
-  renderDetail();
+  if (id) {
+    $("emptyView").style.display = "none";
+    $("docDetail").classList.add("vis");
+    renderDetail();
+  } else {
+    $("docDetail").classList.remove("vis");
+    $("emptyView").style.display = "";
+  }
 }
 
 function buildRows(defs, doc, trackKey, locked) {
@@ -2769,7 +2325,18 @@ Object.assign(window, {
   doExportMetrics,
   setDocsFilter: (v) => { docsFilter = v; renderDocsPage(); },
   setDocsSort: (asc, desc) => { docsSort = docsSort === asc ? desc : asc; renderDocsPage(); },
-  setDocsSearch: (v) => { docsSearch = v; renderDocsPage(); },
+  setDocsSearch: (v) => {
+    const prev = document.querySelector(".dsp-search");
+    const start = prev?.selectionStart ?? v.length;
+    const end = prev?.selectionEnd ?? v.length;
+    docsSearch = v;
+    renderDocsPage();
+    const next = document.querySelector(".dsp-search");
+    if (next) {
+      next.focus();
+      try { next.setSelectionRange(start, end); } catch {}
+    }
+  },
 });
 
 /* ══════════════════════════════════════════════

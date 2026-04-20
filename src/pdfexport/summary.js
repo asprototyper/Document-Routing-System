@@ -89,11 +89,11 @@ export async function exportSummaryPDF({ doc, events, totalWall, totalWork, maxW
 
     r.table(
       [
-        { header: "Stage / Event", key: "label", w: 74, bold: true },
-        { header: "Timestamp", key: "ts", w: 52, gray: true },
-        { header: "Elapsed", key: "wall", w: 24, align: "right" },
-        { header: "Work Time", key: "work", w: 24, align: "right" },
-        { header: "Phase", key: "phase", w: 8, gray: true },
+        { header: "Stage / Event", key: "label", w: 74,  bold: true },
+        { header: "Timestamp", key: "ts", w: 40, gray: true },
+        { header: "Elapsed", key: "wall", w: 18, align: "center" },
+        { header: "Work Time", key: "work", w: 18, align: "center" },
+        { header: "Phase", key: "phase", w: 30, gray: true },
       ],
       stageRows,
     );

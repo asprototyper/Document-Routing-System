@@ -1,0 +1,491 @@
+﻿/* ══════════════════════════════════════════════
+   TABLET  â‰¤ 900px
+   ══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+
+  .btn-fix {
+  margin-left:160px;
+  margin-right:5px;
+}
+  .hdr-left {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .hdr-logo {
+    font-family: "Fraunces", serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--red);
+  }
+
+  .topbarlogo {
+    display: none;
+  }
+  .metrics-body {
+    margin-left: 0;
+  }
+
+  /* Header: collapse theme switcher labels */
+  .hdr {
+    padding: 0 14px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .hdr-tag {
+    display: none;
+  }
+
+  .theme-switcher {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .theme-btn {
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+
+  /* Sidebar: slide-over drawer */
+.sidebar {
+  bottom: 54px;  /* keep — sidebar stops above mobile nav */
+}
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  
+
+  /* Main panel takes full width (no sidebar margin) */
+  .main-panel {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Detail head: stack entity + actions */
+  .det-head-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .det-head-row > div:last-child {
+    align-self: flex-start;
+  }
+
+  /* Info cards: 3 across */
+  .info-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Track grids: stack to single column */
+  .track-grid-3,
+  .track-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Metrics grid: 2 col */
+  .m-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Stage table: hide avg time col */
+  .stbl-hd,
+  .stbl-row {
+    grid-template-columns: 1fr 90px 120px;
+  }
+
+  .stbl-hd > *:last-child,
+  .stbl-row > *:last-child {
+    display: none;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE  â‰¤ 600px
+   ══════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+    .btn-fix {
+  margin-left:5px;
+  margin-right:5px;
+}
+  #pg-metrics .sb-toggle,
+  #pg-documents .sb-toggle {
+    display: none;
+  }
+  .hdr-logo {
+    font-family: "Fraunces", serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--red);
+  }
+
+  .topbarlogo {
+    display: none;
+  }
+  .det-head {
+    position: static;
+    flex-shrink: 0;
+  }
+
+  .doc-detail {
+    overflow-y: auto;
+  }
+
+  .doc-detail .det-body {
+    overflow-y: visible;
+    flex: none;
+  }
+
+  /* Header: hide nav pills, show only logo + toggle + lock */
+  .hdr {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .hdr-nav {
+    display: none;
+     pointer-events: none;  
+  }
+
+  .hdr-logo {
+    font-size: 18px;
+  }
+
+  .theme-switcher {
+    display: none;
+  }
+
+  .hdr-right {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Mobile nav bar at bottom */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 54px;
+    background: var(--s1);
+    border-top: 1px solid var(--b1);
+    z-index: 80;
+    align-items: stretch;
+  }
+
+  .mobile-nav button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: color 0.13s;
+  }
+
+  .mobile-nav button.on {
+    color: var(--red);
+  }
+
+  .mobile-nav button svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  /* Push content above bottom nav */
+  .page {
+    padding-bottom: 54px;
+  }
+
+  .page.pg-pin {
+    padding-bottom: 0;
+  }
+
+  /* Sidebar drawer full height accounting for bottom nav */
+  .sidebar {
+    bottom: 54px;
+  }
+
+  /* Detail head: tighten */
+  .det-head {
+    padding: 12px 14px 0;
+  }
+
+  .det-entity {
+    font-size: 20px;
+  }
+
+  .det-body {
+    padding: 14px;
+  }
+
+  /* Info cards: 2 across, smaller */
+  .info-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ic {
+    padding: 10px 12px;
+  }
+
+  .ic-val {
+    font-size: 13px;
+  }
+
+  /* Stage rows: keep 3 cols, tighter padding */
+  .sr {
+    grid-template-columns: 16px 1fr auto;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .sr-right {
+    min-width: 0;
+  }
+
+  .stmp {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .sr-right-mob {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  /* Track header: smaller */
+  .track-hd {
+    padding: 10px 12px;
+  }
+
+  /* Stage table: simpler */
+  .stbl-hd,
+  .stbl-row {
+    grid-template-columns: 1fr 80px;
+  }
+
+  .stbl-hd > *:nth-child(3),
+  .stbl-row > *:nth-child(3),
+  .stbl-hd > *:last-child,
+  .stbl-row > *:last-child {
+    display: none;
+  }
+
+  /* Metrics: single col */
+  .m-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-body {
+    padding: 16px;
+  }
+
+  /* Modals: full-width bottom sheet on mobile */
+  .overlay {
+    align-items: flex-end;
+  }
+  .modal.w560 {
+
+    padding:10px;
+  }
+  .modal,
+  .modal.w560,
+  .modal.w640 {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 88vh;
+  }
+
+  /* New document button: icon only */
+  .btn-new-label {
+    display: none;
+  }
+
+  .btn-new-icon {
+    display: inline;
+  }
+
+  /* "Back to list" button in detail head */
+  .det-back {
+    display: flex;
+  }
+}
+
+@media (min-width: 601px) {
+  .mobile-nav {
+    display: none !important;  /* — add !important */
+  }
+
+  .btn-new-icon {
+    display: none;
+  }
+
+  .det-back {
+    display: none;
+  }
+}
+
+.simple-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 16px;
+  padding-bottom: 70px;
+}
+
+.simple-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.simple-pick-item {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.simple-pick-item:hover {
+  background: var(--s2);
+}
+
+.simple-pick-name {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.simple-pick-stage {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.simple-context {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.simple-entity {
+  font-family: "Fraunces", serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.simple-phase {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.simple-prog-bar {
+  height: 3px;
+  background: var(--b1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.simple-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--red));
+  border-radius: 2px;
+}
+.simple-pct {
+  font-size: 12px;
+  color: var(--dim);
+  text-align: right;
+}
+
+.simple-stage-name {
+  font-family: "Fraunces", serif;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.simple-stage-hint {
+  font-size: 13px;
+  color: var(--dim);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.simple-stamp-btn {
+  width: 100%;
+  padding: 22px;
+  font-family: "DM Mono", monospace;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--red);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.simple-stamp-btn2 {
+  width: 100%;
+  padding: 22px;
+  font-family: "DM Mono", monospace;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--green);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.simple-stamp-btn:hover {
+  background: var(--red-h);
+}
+
+.simple-stamp-btn.done {
+  background: var(--green);
+  cursor: default;
+}
+
+.simple-stamp-btn.closed {
+  background: var(--dim);
+  cursor: default;
+}
+
+/* Hide simple page on desktop */
+@media (min-width: 601px) {
+  #pg-simple {
+    display: none !important;
+  }
+}
+

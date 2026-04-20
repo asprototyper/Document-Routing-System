@@ -1,0 +1,28 @@
+﻿/* â”€â”€ TOAST â”€â”€ */
+.toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  background: var(--s1);
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 15px;
+  color: var(--blue);
+  z-index: 500;
+  transform: translateY(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.22s ease;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.terr {
+  border-color: var(--red);
+  color: var(--red);
+}
+

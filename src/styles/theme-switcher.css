@@ -1,0 +1,35 @@
+﻿/* â”€â”€ THEME SWITCHER â”€â”€ */
+.theme-switcher {
+  display: flex;
+  gap: 3px;
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: 5px;
+  padding: 3px;
+}
+
+.theme-btn {
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.13s;
+}
+
+.theme-btn:hover {
+  color: var(--text);
+  background: var(--s3);
+}
+
+.theme-btn.on {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+

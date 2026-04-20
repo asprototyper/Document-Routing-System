@@ -1,0 +1,37 @@
+<div class="overlay" id="ov-preassess">
+  <div class="modal">
+    <div class="m-hd">
+      <div><h2>Pre-Assessment Result</h2><p>Record timestamp and outcome</p></div>
+      <button class="m-close" onclick="closeOv('ov-preassess')">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <div class="fl">Date &amp; Time <span class="req">*</span></div>
+        <input type="datetime-local" id="pa-dt" class="fi">
+        <div class="ferr" id="pae-dt">Required.</div>
+        <div class="ferr" id="pae-future">Cannot be a future time.</div>
+      </div>
+      <div class="fg">
+        <div class="fl">Result <span class="req">*</span></div>
+        <div class="preassess-grid">
+          <div class="pa-opt" id="pa-complete" onclick="pickPA('complete')">
+            <div class="pa-lbl a">Complete</div>
+            <div class="appr-desc">Proceed to Phase 1A</div>
+          </div>
+          <div class="pa-opt" id="pa-incomplete" onclick="pickPA('incomplete')">
+            <div class="pa-lbl b">Incomplete</div>
+            <div class="appr-desc">Records assessment timestamp only</div>
+          </div>
+        </div>
+        <div class="ferr" id="pae-result">Please select a result.</div>
+      </div>
+    </div>
+    <div class="m-ft">
+      <span class="m-ft-note"></span>
+      <div class="m-ft-btns">
+        <button class="btn btn-ghost" onclick="closeOv('ov-preassess')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmPA()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
