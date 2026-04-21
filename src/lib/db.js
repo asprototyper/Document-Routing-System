@@ -2,14 +2,29 @@ import { supabase } from "./supabase.js";
 
 // ── shape translators ─────────────────────────────────────────────────────
 
-function rowToDoc(row, stageRows) {
+/**
+ * Convert a `stages` table row into the in-memory stage entry shape
+ * used throughout the UI (`doc.stages[key] = { stampedAt, passedBy?, sentBy? }`).
+ * Exported so realtime INSERT/UPDATE handlers can apply rows incrementally
+ * without re-fetching the whole document graph.
+ */
+export function stageRowToEntry(row) {
+  return {
+    stampedAt: row.stamped_at,
+    ...(row.passed_by ? { passedBy: row.passed_by } : {}),
+    ...(row.sent_by ? { sentBy: row.sent_by } : {}),
+  };
+}
+
+/**
+ * Convert a `documents` row + its related `stages` rows into the
+ * in-memory doc shape the UI works with. Exported so realtime handlers
+ * can rebuild a single doc after an INSERT/UPDATE payload.
+ */
+export function rowToDoc(row, stageRows) {
   const stages = {};
   for (const s of stageRows || []) {
-    stages[s.stage_key] = {
-      stampedAt: s.stamped_at,
-      ...(s.passed_by ? { passedBy: s.passed_by } : {}),
-      ...(s.sent_by ? { sentBy: s.sent_by } : {}),
-    };
+    stages[s.stage_key] = stageRowToEntry(s);
   }
   return {
     id: row.id,

@@ -1,19 +1,24 @@
-﻿/* â”€â”€ TOAST â”€â”€ */
+﻿/* ══════════════════════════════════════════════
+   TOAST
+   ══════════════════════════════════════════════ */
 .toast {
   position: fixed;
-  bottom: 22px;
-  right: 22px;
+  bottom: calc(var(--mobile-nav-h) + var(--sp-5) + var(--safe-bottom));
+  right: var(--sp-5);
+  left: auto;
+  max-width: calc(100vw - 2 * var(--sp-4));
   background: var(--s1);
   border: 2px solid var(--blue);
-  border-radius: 8px;
-  padding: 12px 20px;
-  font-size: 15px;
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-5);
+  font-size: var(--fs-15);
   color: var(--blue);
   z-index: 500;
   transform: translateY(10px);
   opacity: 0;
   pointer-events: none;
-  transition: all 0.22s ease;
+  transition: transform var(--t-base), opacity var(--t-base);
+  box-shadow: var(--shadow-2);
 }
 
 .toast.show {
@@ -26,3 +31,11 @@
   color: var(--red);
 }
 
+@media (max-width: 600px) {
+  .toast {
+    left: var(--sp-4);
+    right: var(--sp-4);
+    max-width: none;
+    text-align: center;
+  }
+}

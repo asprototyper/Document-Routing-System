@@ -1,4 +1,6 @@
-﻿/* â”€â”€ THEME SWITCHER â”€â”€ */
+﻿/* ══════════════════════════════════════════════
+   THEME SWITCHER
+   ══════════════════════════════════════════════ */
 .theme-switcher {
   display: flex;
   gap: 3px;
@@ -10,16 +12,17 @@
 
 .theme-btn {
   font-family: "DM Mono", monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 3px;
+  padding: 5px var(--sp-3);
+  border-radius: var(--r-xs);
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.13s;
+  transition: background var(--t-fast), border-color var(--t-fast),
+    color var(--t-fast);
 }
 
 .theme-btn:hover {
@@ -32,4 +35,3 @@
   border-color: var(--red);
   color: #fff;
 }
-

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -72,12 +72,103 @@ function htmlPartials() {
   }
 }
 
-export default defineConfig({
-  root: 'src',
-  publicDir: '../public',
-  plugins: [htmlPartials()],
-  build: {
-    outDir: '../dist',
-    emptyOutDir: true,
-  },
+/**
+ * Dev-only bypass for `/api/login`.
+ *
+ * In production this file is not executed at runtime — Vercel serves
+ * `api/login.js` directly. `apply: 'serve'` also pins this plugin to the
+ * Vite dev server, so the bypass cannot leak into a production build.
+ *
+ * Behavior:
+ *   - Skips the PIN bcrypt check entirely (any body is accepted).
+ *   - Signs in to Supabase with the shared account from `.env.local`
+ *     and returns the same `{ access_token, refresh_token, expires_in }`
+ *     shape the real endpoint returns.
+ *
+ * To disable locally, set `DEV_LOGIN_BYPASS=0` in `.env.local`.
+ */
+function devLoginBypass(env) {
+  const enabled = env.DEV_LOGIN_BYPASS !== '0'
+  return {
+    name: 'dev-login-bypass',
+    apply: 'serve',
+    configureServer(server) {
+      if (!enabled) return
+      server.middlewares.use('/api/login', async (req, res, next) => {
+        if (req.method !== 'POST') return next()
+
+        const {
+          SUPABASE_URL,
+          SUPABASE_ANON_KEY,
+          SUPABASE_SHARED_EMAIL,
+          SUPABASE_SHARED_PASSWORD,
+        } = env
+
+        const sendJson = (status, body) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(body))
+        }
+
+        if (
+          !SUPABASE_URL ||
+          !SUPABASE_ANON_KEY ||
+          !SUPABASE_SHARED_EMAIL ||
+          !SUPABASE_SHARED_PASSWORD
+        ) {
+          return sendJson(500, {
+            error:
+              'Dev login bypass: missing SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SHARED_EMAIL / SUPABASE_SHARED_PASSWORD in .env.local.',
+          })
+        }
+
+        try {
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          })
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: SUPABASE_SHARED_EMAIL,
+            password: SUPABASE_SHARED_PASSWORD,
+          })
+          if (error || !data?.session) {
+            console.error('[dev-login-bypass] supabase sign-in failed', error)
+            return sendJson(500, {
+              error: 'Dev login bypass: could not establish Supabase session.',
+            })
+          }
+          console.log('[dev-login-bypass] issued session (PIN check skipped)')
+          return sendJson(200, {
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+            expires_in: data.session.expires_in,
+          })
+        } catch (e) {
+          console.error('[dev-login-bypass] error', e)
+          return sendJson(500, { error: 'Dev login bypass: unexpected error.' })
+        }
+      })
+    },
+  }
+}
+
+export default defineConfig(({ command, mode }) => {
+  // `.env*` files live at the repo root, but Vite's `root` is `src/`, so
+  // without overriding `envDir` none of the `VITE_*` vars would reach the
+  // client and none of the server-only vars would reach the dev bypass.
+  const env = loadEnv(mode, __dirname, '')
+
+  return {
+    root: 'src',
+    publicDir: '../public',
+    envDir: __dirname,
+    plugins: [
+      htmlPartials(),
+      ...(command === 'serve' ? [devLoginBypass(env)] : []),
+    ],
+    build: {
+      outDir: '../dist',
+      emptyOutDir: true,
+    },
+  }
 })

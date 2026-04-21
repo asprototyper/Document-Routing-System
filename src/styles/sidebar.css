@@ -1,54 +1,56 @@
 ﻿/* ══════════════════════════════════════════════
-   RESPONSIVE — mobile-first breakpoints
-  ══════════════════════════════════════════════ */
-
-/* ══════════════════════════════════════════════
-   Sidebar toggle button (hidden on desktop)
+   RESPONSIVE — sidebar toggle + overlay backdrop
    ══════════════════════════════════════════════ */
+
 .sb-toggle {
   display: flex;
   align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 6px;
+  padding: var(--sp-1);
+  border-radius: var(--r-sm);
   color: var(--text);
   flex-shrink: 0;
+  transition: background var(--t-fast);
+}
+
+.sb-toggle:hover {
+  background: var(--s2);
 }
 
 .sb-toggle svg {
   display: block;
 }
 
-/* ══════════════════════════════════════════════
-   Mobile sidebar overlay backdrop
-   ══════════════════════════════════════════════ */
-/* AFTER */
+/* Mobile sidebar overlay backdrop */
 .sb-backdrop {
   display: none;
   position: fixed;
-  top: 64px;               /* cover full screen including header */
+  top: var(--hdr-h);
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.45);   /* visible dim */
-  z-index: 199;                        /* just under sidebar (200) */
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 199;
 }
 
 .sb-backdrop.open {
   display: block;
 }
 
+/* ── Settings slider (Font Size) ── */
 .fsize-slider-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
 }
 
 .fsize-tick-label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-13);
   flex-shrink: 0;
   line-height: 1;
   width: 16px;
@@ -60,7 +62,7 @@
   appearance: none;
   flex: 1;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--r-xs);
   background: var(--b2);
   outline: none;
   cursor: pointer;
@@ -76,7 +78,7 @@
   border: 2px solid var(--bg);
   box-shadow: 0 0 0 2px var(--red);
   cursor: pointer;
-  transition: box-shadow 0.15s;
+  transition: box-shadow var(--t-fast);
 }
 
 .fsize-slider::-webkit-slider-thumb:hover {
@@ -96,10 +98,9 @@
 .fsize-ticks {
   display: flex;
   justify-content: space-between;
-  padding: 4px 26px 0;
-  font-size: 10px;
+  padding: var(--sp-1) var(--sp-6) 0;
+  font-size: var(--fs-10);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dim);
 }
-

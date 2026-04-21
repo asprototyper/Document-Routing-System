@@ -105,7 +105,22 @@ create policy "auth_all_stages" on stages
 create policy "auth_all_audit_log" on audit_log
   for all to authenticated using (true) with check (true);
 
--- ── Enable Realtime (optional) ──────────────────────────────
--- Run these if you want live updates across browser tabs.
--- alter publication supabase_realtime add table documents;
--- alter publication supabase_realtime add table stages;
+-- ── Enable Realtime ─────────────────────────────────────────
+-- Live updates across browser tabs. The client subscribes via
+-- `src/lib/realtime.js` and applies payloads incrementally.
+--
+-- `REPLICA IDENTITY FULL` on `stages` is required so DELETE payloads
+-- include `doc_id` + `stage_key` (the natural key we key on in the
+-- UI) rather than just the synthetic `id`. Without it, deletes would
+-- fire without enough info to know which cell to clear locally.
+alter table stages    replica identity full;
+alter table audit_log replica identity full;
+
+-- `add table` errors if the table is already in the publication, so
+-- drop-and-re-add for idempotency when re-running this script.
+alter publication supabase_realtime drop table if exists documents;
+alter publication supabase_realtime drop table if exists stages;
+alter publication supabase_realtime drop table if exists audit_log;
+alter publication supabase_realtime add  table documents;
+alter publication supabase_realtime add  table stages;
+alter publication supabase_realtime add  table audit_log;

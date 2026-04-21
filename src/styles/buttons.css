@@ -1,23 +1,19 @@
-﻿/*BUTTONS*/
-
-.btn-fix2 {
-  
-  margin-bottom:10px;
-}
-.btn-fix {
-  margin-left:160px;
-  margin-right:5px;
-}
-.btn {
+﻿.btn {
   font-family: "DM Mono", monospace;
-  font-size: 14px;
+  font-size: var(--fs-14);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: var(--sp-2) var(--sp-5);
+  border-radius: var(--r-md);
   border: 2px solid;
   cursor: pointer;
-  transition: all 0.13s;
+  transition: background var(--t-fast), color var(--t-fast),
+    border-color var(--t-fast), transform var(--t-fast);
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
 }
 
 .btn-primary {
@@ -27,15 +23,15 @@
   font-weight: 500;
 }
 
+.btn-primary:hover {
+  background: var(--red-h);
+}
+
 .btn-primary2 {
   background: var(--green);
   border-color: var(--green);
   color: #fff;
   font-weight: 500;
-}
-
-.btn-primary:hover {
-  background: var(--red-h);
 }
 
 .btn-ghost {
@@ -60,13 +56,13 @@
 }
 
 .btn-sm {
-  padding: 7px 14px;
-  font-size: 13px;
+  padding: 7px var(--sp-3);
+  font-size: var(--fs-13);
 }
 
 .btn-xs {
-  padding: 5px 11px;
-  font-size: 12px;
+  padding: 5px var(--sp-3);
+  font-size: var(--fs-12);
 }
 
 .btn:disabled {
@@ -74,3 +70,15 @@
   cursor: not-allowed;
 }
 
+.btn:disabled:active {
+  transform: none;
+}
+
+/* Legacy positional helper used by the summary-export button */
+.btn-fix {
+  margin-inline: auto 5px;
+}
+
+.btn-fix2 {
+  margin-bottom: var(--sp-3);
+}

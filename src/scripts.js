@@ -6,7 +6,11 @@ import {
   redactStage,
   redactTsField,
   deleteDoc,
+  rowToDoc,
+  stageRowToEntry,
 } from "./lib/db.js";
+
+import { subscribeRealtime } from "./lib/realtime.js";
 
 import { supabase } from "./lib/supabase.js";
 
@@ -108,6 +112,131 @@ let docsSearch = "",
   docsSort = "created_desc",
   docsFilter = "all";
 let sidebarManuallyClosed = false;
+let _rtUnsub = null;
+
+/* ══════════════════════════════════════════════
+   RENDER SCHEDULER
+   A single requestAnimationFrame-coalesced render pass for whatever
+   page is currently active. Realtime payloads and optimistic updates
+   both fire into this, so a burst of mutations renders at most once.
+══════════════════════════════════════════════ */
+let _renderScheduled = false;
+function scheduleRender() {
+  if (_renderScheduled) return;
+  _renderScheduled = true;
+  requestAnimationFrame(() => {
+    _renderScheduled = false;
+    const active = document.querySelector(".page.active")?.id;
+    if (active === "pg-tracker") {
+      renderSidebar();
+      if (selId && docs.some((d) => d.id === selId)) renderDetail();
+      else if (selId) {
+        selId = null;
+        $("docDetail").classList.remove("vis");
+        $("emptyView").style.display = "";
+      }
+    } else if (active === "pg-documents") {
+      renderDocsPage();
+    } else if (active === "pg-metrics") {
+      renderMetrics();
+    } else if (active === "pg-simple") {
+      renderSimple();
+    } else {
+      // PIN or other non-data pages — still keep sidebar counts fresh
+      // for the moment the user unlocks again.
+      try { renderSidebar(); } catch {}
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   OPTIMISTIC MUTATION HELPER
+
+   1. `apply()`   — synchronously mutate local `docs` so the UI updates
+                    instantly when we call `scheduleRender()`.
+   2. `remote()`  — fire the DB call. On success we do nothing (realtime
+                    will rebroadcast, but that just re-applies the same
+                    values — idempotent).
+   3. `rollback()`— run only if `remote()` throws, undoing step 1.
+
+   We deliberately don't show the blocking loader for optimistic ops —
+   the UI already moved, a spinner would be a lie.
+══════════════════════════════════════════════ */
+async function withOptimistic({ apply, remote, rollback, errorMsg }) {
+  apply();
+  scheduleRender();
+  try {
+    return await remote();
+  } catch (e) {
+    console.error(e);
+    try { rollback?.(); } catch (re) { console.error("rollback failed", re); }
+    scheduleRender();
+    toast(errorMsg || "Could not save — changes reverted.", true);
+    throw e;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   REALTIME APPLY HANDLERS
+   Each Supabase postgres_changes payload is translated into a local
+   mutation on `docs` and then the active page is re-rendered.
+══════════════════════════════════════════════ */
+function applyDocPayload({ eventType, new: n, old: o }) {
+  if (eventType === "INSERT") {
+    if (!docs.some((d) => d.id === n.id)) {
+      docs.unshift(rowToDoc(n, []));
+    }
+  } else if (eventType === "UPDATE") {
+    const existing = docs.find((d) => d.id === n.id);
+    const stageRows = existing
+      ? Object.entries(existing.stages).map(([stage_key, v]) => ({
+          stage_key,
+          stamped_at: v.stampedAt,
+          passed_by: v.passedBy ?? null,
+          sent_by: v.sentBy ?? null,
+        }))
+      : [];
+    const next = rowToDoc(n, stageRows);
+    if (existing) Object.assign(existing, next);
+    else docs.unshift(next);
+  } else if (eventType === "DELETE") {
+    const id = o?.id;
+    if (!id) return;
+    docs = docs.filter((d) => d.id !== id);
+    if (selId === id) selId = null;
+  }
+  scheduleRender();
+}
+
+function applyStagePayload({ eventType, new: n, old: o }) {
+  const docId = (n || o)?.doc_id;
+  if (!docId) return;
+  const doc = docs.find((d) => d.id === docId);
+  if (!doc) return;
+  if (eventType === "DELETE") {
+    const key = o?.stage_key;
+    if (key) delete doc.stages[key];
+  } else {
+    doc.stages[n.stage_key] = stageRowToEntry(n);
+  }
+  scheduleRender();
+}
+
+function startRealtime() {
+  if (_rtUnsub) return;
+  _rtUnsub = subscribeRealtime({
+    onDocChange: applyDocPayload,
+    onStageChange: applyStagePayload,
+    // audit_log is write-only for us — nothing to render — but we still
+    // subscribe so future features (activity feed) just plug in here.
+  });
+}
+
+function stopRealtime() {
+  if (!_rtUnsub) return;
+  try { _rtUnsub(); } catch (e) { console.error(e); }
+  _rtUnsub = null;
+}
 
 /* ══════════════════════════════════════════════
    INIT
@@ -124,6 +253,7 @@ async function initData() {
     setLoading(false);
   }
   renderSidebar();
+  startRealtime();
 }
 
 /* ══════════════════════════════════════════════
@@ -236,6 +366,7 @@ async function doLock() {
   syncDots();
   $("pinErr").textContent = "";
   goTo("pin");
+  stopRealtime();
   try {
     await supabase.auth.signOut();
   } catch (e) {
@@ -997,27 +1128,30 @@ async function confirmPA() {
     return;
   }
   const doc = docs.find((d) => d.id === paDocId);
+  if (!doc) return;
   const ts = new Date(dt).toISOString();
-  setLoading(true, "Recording pre-assessment…");
+  const prevPreassess = doc.preassess;
+  const prevPaTs = doc.paTs;
+  closeOv("ov-preassess");
   try {
-    await updateDoc(paDocId, { preassess: paPick, paTs: ts });
-    doc.preassess = paPick;
-    doc.paTs = ts;
-    closeOv("ov-preassess");
-    renderSidebar();
-    renderDetail();
-    if ($("pg-simple").classList.contains("active")) renderSimple();
+    await withOptimistic({
+      apply: () => {
+        doc.preassess = paPick;
+        doc.paTs = ts;
+      },
+      remote: () => updateDoc(paDocId, { preassess: paPick, paTs: ts }),
+      rollback: () => {
+        doc.preassess = prevPreassess;
+        doc.paTs = prevPaTs;
+      },
+      errorMsg: "Failed to save pre-assessment.",
+    });
     toast(
       paPick === "complete"
         ? "Pre-assessment: Complete → Phase 1A."
         : "Pre-assessment: Incomplete → Phase 1B.",
     );
-  } catch (e) {
-    console.error(e);
-    toast("Failed to save pre-assessment.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 /* ══════════════════════════════════════════════
@@ -1025,19 +1159,17 @@ async function confirmPA() {
 ══════════════════════════════════════════════ */
 async function setNOD(field, docId) {
   const doc = docs.find((d) => d.id === docId);
-  setLoading(true, "Issuing NOD…");
+  if (!doc) return;
+  const prev = doc[field];
   try {
-    await updateDoc(docId, { [field]: true });
-    doc[field] = true;
-    renderSidebar();
-    renderDetail();
+    await withOptimistic({
+      apply: () => { doc[field] = true; },
+      remote: () => updateDoc(docId, { [field]: true }),
+      rollback: () => { doc[field] = prev; },
+      errorMsg: "Failed to issue NOD.",
+    });
     toast("NOD issued — Phase 3B activated.");
-  } catch (e) {
-    console.error(e);
-    toast("Failed to issue NOD.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 /* ══════════════════════════════════════════════
@@ -1056,21 +1188,25 @@ async function confirmP3Merge(docId) {
     return;
   }
   const doc = docs.find((d) => d.id === docId);
+  if (!doc) return;
   const ts = new Date(dt).toISOString();
-  setLoading(true, "Confirming Phase 3…");
+  const prevDec = doc.p3decision;
+  const prevTs = doc.p3mergeTs;
   try {
-    await updateDoc(docId, { p3decision: "compliant", p3mergeTs: ts });
-    doc.p3decision = "compliant";
-    doc.p3mergeTs = ts;
-    renderSidebar();
-    renderDetail();
+    await withOptimistic({
+      apply: () => {
+        doc.p3decision = "compliant";
+        doc.p3mergeTs = ts;
+      },
+      remote: () => updateDoc(docId, { p3decision: "compliant", p3mergeTs: ts }),
+      rollback: () => {
+        doc.p3decision = prevDec;
+        doc.p3mergeTs = prevTs;
+      },
+      errorMsg: "Failed to save decision.",
+    });
     toast("Phase 3 findings confirmed — proceeding to Phase 3A.");
-  } catch (e) {
-    console.error(e);
-    toast("Failed to save decision.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 /* ══════════════════════════════════════════════
@@ -1116,23 +1252,22 @@ async function doStamp() {
       return;
     }
     const doc = docs.find((d) => d.id === tsCtx.docId);
+    if (!doc) { tsCtx = null; closeOv("ov-stamp"); return; }
     const ts = new Date(dt).toISOString();
-    setLoading(true, "Recording timestamp…");
+    const field = tsCtx.field;
+    const docId = tsCtx.docId;
+    const prev = doc[field];
+    closeOv("ov-stamp");
+    tsCtx = null;
     try {
-      await updateDoc(tsCtx.docId, { [tsCtx.field]: ts });
-      doc[tsCtx.field] = ts;
-      closeOv("ov-stamp");
-      tsCtx = null;
-      renderSidebar();
-      renderDetail();
-      if ($("pg-simple").classList.contains("active")) renderSimple();
+      await withOptimistic({
+        apply: () => { doc[field] = ts; },
+        remote: () => updateDoc(docId, { [field]: ts }),
+        rollback: () => { doc[field] = prev; },
+        errorMsg: "Failed to save timestamp.",
+      });
       toast("Timestamp recorded.");
-    } catch (e) {
-      console.error(e);
-      toast("Failed to save timestamp.", true);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
     return;
   }
   if (!stampCtx) return;
@@ -1155,26 +1290,28 @@ async function doStamp() {
   }
   if (!ok) return;
   const doc = docs.find((d) => d.id === stampCtx.docId);
+  if (!doc) { stampCtx = null; closeOv("ov-stamp"); return; }
   const ts = new Date(dt).toISOString();
   const extras = {};
   if (stampCtx.sd.passedBy) extras.passedBy = $("sm-passedby").value.trim();
   if (stampCtx.sd.sentBy) extras.sentBy = $("sm-sentby").value.trim();
-  setLoading(true, "Stamping stage…");
+  const stageKey = stampCtx.sd.key;
+  const docId = stampCtx.docId;
+  const prev = doc.stages[stageKey];
+  closeOv("ov-stamp");
+  stampCtx = null;
   try {
-    await stampStage(stampCtx.docId, stampCtx.sd.key, ts, extras);
-    doc.stages[stampCtx.sd.key] = { stampedAt: ts, ...extras };
-    closeOv("ov-stamp");
-    stampCtx = null;
-    renderSidebar();
-    renderDetail();
-    if ($("pg-simple").classList.contains("active")) renderSimple();
+    await withOptimistic({
+      apply: () => { doc.stages[stageKey] = { stampedAt: ts, ...extras }; },
+      remote: () => stampStage(docId, stageKey, ts, extras),
+      rollback: () => {
+        if (prev) doc.stages[stageKey] = prev;
+        else delete doc.stages[stageKey];
+      },
+      errorMsg: "Failed to save stage.",
+    });
     toast("Stage recorded.");
-  } catch (e) {
-    console.error(e);
-    toast("Failed to save stage.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 /* ══════════════════════════════════════════════
@@ -1230,27 +1367,40 @@ async function confirmAppr() {
     return;
   }
   const doc = docs.find((d) => d.id === apprDocId);
+  if (!doc) return;
   const ts = new Date(dt).toISOString();
-  setLoading(true, "Recording certificate decision…");
+  const docId = apprDocId;
+  const pick = apprPick;
+  const prevStage = doc.stages["p5_receipt"];
+  const prevOutcome = doc.certOutcome;
+  const prevDecTs = doc.certDecisionTs;
+  closeOv("ov-approval");
   try {
-    await stampStage(apprDocId, "p5_receipt", ts);
-    await updateDoc(apprDocId, { certOutcome: apprPick, certDecisionTs: ts });
-    doc.stages["p5_receipt"] = { stampedAt: ts };
-    doc.certOutcome = apprPick;
-    doc.certDecisionTs = ts;
-    closeOv("ov-approval");
-    renderSidebar();
-    renderDetail();
-    if ($("pg-simple").classList.contains("active")) renderSimple();
+    await withOptimistic({
+      apply: () => {
+        doc.stages["p5_receipt"] = { stampedAt: ts };
+        doc.certOutcome = pick;
+        doc.certDecisionTs = ts;
+      },
+      // Two DB writes — stage stamp + decision. If the second fails we'll
+      // still have a stale stamp server-side, but `stampStage` uses an
+      // UPSERT keyed on (doc_id, stage_key) so a retry cleanly replaces it.
+      remote: async () => {
+        await stampStage(docId, "p5_receipt", ts);
+        await updateDoc(docId, { certOutcome: pick, certDecisionTs: ts });
+      },
+      rollback: () => {
+        if (prevStage) doc.stages["p5_receipt"] = prevStage;
+        else delete doc.stages["p5_receipt"];
+        doc.certOutcome = prevOutcome;
+        doc.certDecisionTs = prevDecTs;
+      },
+      errorMsg: "Failed to save decision.",
+    });
     toast(
-      `Certificate ${apprPick} — proceeding to Phase ${apprPick === "approved" ? "5A → 6A" : "5B → 6B"}.`,
+      `Certificate ${pick} — proceeding to Phase ${pick === "approved" ? "5A → 6A" : "5B → 6B"}.`,
     );
-  } catch (e) {
-    console.error(e);
-    toast("Failed to save decision.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 /* ══════════════════════════════════════════════
@@ -1825,38 +1975,40 @@ async function confirmSimpleP3Merge(docId) {
     return;
   }
   const doc = docs.find((d) => d.id === docId);
+  if (!doc) return;
   const ts = new Date(dt).toISOString();
-  setLoading(true, "Confirming Phase 3…");
+  const prevDec = doc.p3decision;
+  const prevTs = doc.p3mergeTs;
   try {
-    await updateDoc(docId, { p3decision: "compliant", p3mergeTs: ts });
-    doc.p3decision = "compliant";
-    doc.p3mergeTs = ts;
-    renderSidebar();
-    renderSimple();
+    await withOptimistic({
+      apply: () => {
+        doc.p3decision = "compliant";
+        doc.p3mergeTs = ts;
+      },
+      remote: () => updateDoc(docId, { p3decision: "compliant", p3mergeTs: ts }),
+      rollback: () => {
+        doc.p3decision = prevDec;
+        doc.p3mergeTs = prevTs;
+      },
+      errorMsg: "Failed to save.",
+    });
     toast("Phase 3 confirmed — proceeding to Phase 3A.");
-  } catch (e) {
-    console.error(e);
-    toast("Failed to save.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 async function confirmSimpleP3B(docId) {
   const doc = docs.find((d) => d.id === docId);
-  setLoading(true, "Activating Phase 3B…");
+  if (!doc) return;
+  const prevDec = doc.p3decision;
   try {
-    await updateDoc(docId, { p3decision: "nod" });
-    doc.p3decision = "nod";
-    renderSidebar();
-    renderSimple();
+    await withOptimistic({
+      apply: () => { doc.p3decision = "nod"; },
+      remote: () => updateDoc(docId, { p3decision: "nod" }),
+      rollback: () => { doc.p3decision = prevDec; },
+      errorMsg: "Failed to save.",
+    });
     toast("Phase 3B activated.");
-  } catch (e) {
-    console.error(e);
-    toast("Failed to save.", true);
-  } finally {
-    setLoading(false);
-  }
+  } catch {}
 }
 
 /* ══════════════════════════════════════════════

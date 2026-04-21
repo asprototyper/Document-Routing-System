@@ -117,27 +117,54 @@ Every `git push` to main auto-deploys.
 
 ---
 
-## 5 — Optional: enable Realtime
+## 5 — Realtime (enabled by default)
 
-If you want live updates when multiple people have the app open:
+The app subscribes to Supabase Realtime on boot (after the PIN unlocks
+the session) so changes made in one tab appear in every other tab
+without a reload. Payloads are applied **incrementally** — an inserted
+stage patches the one cell, a deleted doc drops out of the sidebar —
+so there's no full `loadAllDocs()` churn on every change.
 
-1. In Supabase → **Database → Replication**, enable replication for
-   the `documents` and `stages` tables.
-2. In `supabase/schema.sql`, uncomment the two lines at the bottom:
-   ```sql
-   alter publication supabase_realtime add table documents;
-   alter publication supabase_realtime add table stages;
-   ```
-3. In `src/scripts.js`, add to the boot section:
-   ```js
-   import { subscribeToChanges } from './lib/db.js'
-   // After initData():
-   subscribeToChanges(async () => {
-     docs = await loadAllDocs()
-     renderSidebar()
-     if (selId) renderDetail()
-   })
-   ```
+### Enabling it on a fresh Supabase project
+
+Re-running `supabase/schema.sql` is all you need — it now:
+
+- sets `REPLICA IDENTITY FULL` on `stages` and `audit_log` so DELETE
+  payloads include the natural key (`doc_id`, `stage_key`), not just
+  the synthetic row id
+- adds `documents`, `stages` and `audit_log` to the
+  `supabase_realtime` publication (idempotently — safe to re-run)
+
+If you'd rather wire it by hand in the Supabase dashboard:
+
+1. **Database → Replication → `supabase_realtime`** → toggle on
+   `documents`, `stages`, and `audit_log`.
+2. For each of those tables, open **Table editor → … menu → Edit
+   table → Replica identity → Full**.
+
+### How the client consumes it
+
+`src/lib/realtime.js` owns the socket. `subscribeRealtime(handlers)`:
+
+- reconnects with exponential backoff (1 s → 30 s cap) on
+  `CHANNEL_ERROR` / `TIMED_OUT` / `CLOSED`
+- re-applies the fresh JWT to the realtime socket on every
+  `TOKEN_REFRESHED` auth event, so the connection survives the hourly
+  Supabase token rotation
+- tears down on `SIGNED_OUT` so a locked tab stops receiving data
+
+`src/scripts.js` plugs its `applyDocPayload` / `applyStagePayload`
+handlers into it in `initData()` and disposes on `doLock()`.
+
+### Optimistic writes
+
+Stamps, PA, NOD, timestamp fields, approval and P3 merge all go
+through a `withOptimistic({ apply, remote, rollback })` helper:
+the local mutation runs first and the UI re-renders on the next
+animation frame, then the DB write fires. If the write fails the
+rollback restores the previous state and a toast surfaces the error.
+Realtime rebroadcasts of our own writes are idempotent (same values
+overwrite the same values), so no visible flicker.
 
 ---
 

@@ -2,8 +2,9 @@
    HEADER
    ══════════════════════════════════════════════ */
 .hdr {
-  height: 64px;
-  padding: 0 22px;
+  height: var(--hdr-h);
+  padding: 0 var(--sp-5);
+  padding-top: var(--safe-top);
   border-bottom: 1px solid var(--b1);
   display: flex;
   align-items: center;
@@ -11,24 +12,32 @@
   flex-shrink: 0;
   background: var(--bg);
   z-index: 40;
+  gap: var(--sp-2);
 }
 
 .hdr-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
+  min-width: 0;          /* allow shrinking */
 }
+
 .ntc {
   color: var(--muted);
 }
+
 .hdr-logo {
   display: flex;
   align-items: center;
   font-family: "Fraunces", serif;
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-weight: 300;
   color: var(--red);
-  gap: 4px;
+  gap: var(--sp-1);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hdr-logo em {
@@ -37,13 +46,13 @@
 }
 
 .hdr-tag {
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--dim);
   border: 1px solid var(--b1);
-  border-radius: 2px;
-  padding: 3px 8px;
+  border-radius: var(--r-xs);
+  padding: 3px var(--sp-2);
 }
 
 .hdr-nav {
@@ -55,16 +64,17 @@
 
 .nav-pill {
   font-family: "DM Mono", monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 8px 18px;
-  border-radius: 4px;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: color var(--t-fast), border-color var(--t-fast),
+    background var(--t-fast);
 }
 
 .nav-pill:hover {
@@ -80,8 +90,7 @@
 
 .hdr-right {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-2);
   align-items: center;
   flex-shrink: 0;
 }
-

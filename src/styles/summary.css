@@ -1,17 +1,19 @@
-﻿/* SUMMARY  */
+﻿/* ══════════════════════════════════════════════
+   SUMMARY
+   ══════════════════════════════════════════════ */
 .sum-section {
-  margin-bottom: 20px;
+  margin-bottom: var(--sp-5);
 }
 
 .sum-sec-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--dim);
   margin-bottom: 9px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .sum-sec-title::after {
@@ -23,19 +25,19 @@
 
 .sum-meta-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
 }
 
 .sum-meta-card {
   background: var(--s2);
   border: 1px solid var(--b1);
-  border-radius: 4px;
-  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  padding: 9px var(--sp-3);
 }
 
 .smc-lbl {
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--dim);
@@ -43,17 +45,18 @@
 }
 
 .smc-val {
-  font-size: 15px;
+  font-size: var(--fs-15);
   color: var(--text);
+  word-break: break-word;
 }
 
 .sum-stage-row {
   display: grid;
-  grid-template-columns: 1fr 140px 100px 60px;
-  gap: 8px;
-  padding: 12px 14px;
+  grid-template-columns: minmax(0, 1fr) 140px 100px 60px;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--b1);
-  font-size: 13px;
+  font-size: var(--fs-13);
   align-items: center;
 }
 
@@ -66,36 +69,66 @@
 }
 
 .sum-stage-row.hd {
-  font-size: 12px;
+  font-size: var(--fs-12);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--dim);
   background: var(--bg);
-  padding: 6px 10px;
+  padding: var(--sp-2) var(--sp-3);
 }
 
 .ssr-bar-bg {
   width: 50px;
   height: 4px;
   background: var(--b1);
-  border-radius: 2px;
+  border-radius: var(--r-xs);
   overflow: hidden;
   margin-left: auto;
 }
 
 .ssr-bar-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--r-xs);
 }
 
 .sum-total-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px;
+  padding: var(--sp-3);
   margin-top: 7px;
   background: var(--s2);
   border: 1px solid var(--b1);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
+  gap: var(--sp-3);
+  flex-wrap: wrap;
 }
 
+@media (max-width: 600px) {
+  .sum-meta-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sum-stage-row {
+    grid-template-columns: minmax(0, 1fr) 80px 60px;
+    padding: var(--sp-3);
+  }
+
+  .sum-stage-row > *:nth-child(4) {
+    display: none;
+  }
+
+  .sum-stage-row.hd {
+    padding: var(--sp-2);
+  }
+
+  .ssr-bar-bg {
+    width: 40px;
+  }
+}
+
+@media (max-width: 420px) {
+  .sum-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}

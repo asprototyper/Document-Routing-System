@@ -1,41 +1,24 @@
-﻿/* â”€â”€ REDACT BUTTON â”€â”€ */
-.redact-btn {
-  font-family: "DM Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 4px 9px;
-  border-radius: 2px;
-  border: 1px solid rgba(192, 57, 43, 0.3);
-  background: transparent;
-  color: var(--red);
-  cursor: pointer;
-  opacity: 0.55;
-  transition: all 0.13s;
-}
-
-.redact-btn:hover {
-  opacity: 1;
-  background: rgba(192, 57, 43, 0.07);
-}
-
+﻿/* ══════════════════════════════════════════════
+   REDACT BUTTON
+   ══════════════════════════════════════════════ */
+.redact-btn,
 .ts-redact-btn {
   font-family: "DM Mono", monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 4px 9px;
-  border-radius: 2px;
+  padding: var(--sp-1) 9px;
+  border-radius: var(--r-xs);
   border: 1px solid rgba(192, 57, 43, 0.3);
   background: transparent;
   color: var(--red);
   cursor: pointer;
   opacity: 0.55;
-  transition: all 0.13s;
+  transition: opacity var(--t-fast), background var(--t-fast);
 }
 
+.redact-btn:hover,
 .ts-redact-btn:hover {
   opacity: 1;
   background: rgba(192, 57, 43, 0.07);
 }
-
