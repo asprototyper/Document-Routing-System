@@ -82,17 +82,28 @@ create trigger documents_updated_at
   for each row execute function touch_updated_at();
 
 -- ── Row Level Security ──────────────────────────────────────
--- The app uses a single shared PIN for access control at the
--- UI level. RLS here simply allows all operations from the
--- anon key so no individual auth is needed.
+-- Access is gated by a server-side PIN check (see api/login.js):
+-- the server signs in as a shared Supabase user and hands the
+-- resulting JWT to the client. RLS therefore requires an
+-- authenticated session — the anon key on its own is inert.
 alter table documents  enable row level security;
 alter table stages     enable row level security;
 alter table audit_log  enable row level security;
 
--- Allow full access from the anon key (PIN-gated in the UI)
-create policy "anon_all_documents"  on documents  for all using (true) with check (true);
-create policy "anon_all_stages"     on stages     for all using (true) with check (true);
-create policy "anon_all_audit_log"  on audit_log  for all using (true) with check (true);
+-- Drop the old permissive policies if a previous version of this
+-- schema was already applied.
+drop policy if exists "anon_all_documents" on documents;
+drop policy if exists "anon_all_stages"    on stages;
+drop policy if exists "anon_all_audit_log" on audit_log;
+
+-- Allow full access only to authenticated sessions (the shared
+-- app account signed in via /api/login).
+create policy "auth_all_documents" on documents
+  for all to authenticated using (true) with check (true);
+create policy "auth_all_stages" on stages
+  for all to authenticated using (true) with check (true);
+create policy "auth_all_audit_log" on audit_log
+  for all to authenticated using (true) with check (true);
 
 -- ── Enable Realtime (optional) ──────────────────────────────
 -- Run these if you want live updates across browser tabs.

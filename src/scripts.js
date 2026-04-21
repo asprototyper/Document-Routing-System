@@ -8,6 +8,8 @@ import {
   deleteDoc,
 } from "./lib/db.js";
 
+import { supabase } from "./lib/supabase.js";
+
 import { exportSummaryPDF, exportMetricsPDF } from "./pdfexport.js";
 
 import {
@@ -127,11 +129,12 @@ async function initData() {
 /* ══════════════════════════════════════════════
    PIN
 ══════════════════════════════════════════════ */
-const PIN = import.meta.env.VITE_APP_PIN;
 let pin = "";
+let pinBusy = false;
 
 document.querySelectorAll(".pin-key").forEach((k) => {
   k.addEventListener("click", () => {
+    if (pinBusy) return;
     const v = k.dataset.v;
     if (v === "del") pin = pin.slice(0, -1);
     else if (pin.length < 4) pin += v;
@@ -141,6 +144,7 @@ document.querySelectorAll(".pin-key").forEach((k) => {
 });
 document.addEventListener("keydown", (e) => {
   if ($("pg-pin").classList.contains("active")) {
+    if (pinBusy) return;
     if (e.key >= "0" && e.key <= "9" && pin.length < 4) {
       pin += e.key;
       syncDots();
@@ -160,22 +164,66 @@ function syncDots() {
     d.classList.remove("shake");
   });
 }
-function checkPin() {
-  if (pin === PIN) {
-    $("pinErr").textContent = "";
+
+function pinShakeAndReset(msg) {
+  document
+    .querySelectorAll(".pin-dot")
+    .forEach((d) => d.classList.add("shake"));
+  $("pinErr").textContent = msg;
+  setTimeout(() => {
+    pin = "";
+    syncDots();
+  }, 700);
+}
+
+async function checkPin() {
+  if (pinBusy) return;
+  pinBusy = true;
+  $("pinErr").textContent = "";
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 429) {
+      const mins = Math.ceil((data.retryAfter || 60) / 60);
+      pinShakeAndReset(`Too many attempts. Try again in ~${mins} min.`);
+      return;
+    }
+    if (res.status === 401) {
+      pinShakeAndReset("Incorrect PIN — try again.");
+      return;
+    }
+    if (!res.ok || !data.access_token || !data.refresh_token) {
+      pinShakeAndReset(data.error || "Login failed. Try again.");
+      return;
+    }
+
+    const { error } = await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
+    if (error) {
+      console.error("setSession failed:", error);
+      pinShakeAndReset("Could not start session.");
+      return;
+    }
+
+    pin = "";
+    syncDots();
+    await initData();
     setTimeout(() => goTo("tracker"), 200);
-  } else {
-    document
-      .querySelectorAll(".pin-dot")
-      .forEach((d) => d.classList.add("shake"));
-    $("pinErr").textContent = "Incorrect PIN — try again.";
-    setTimeout(() => {
-      pin = "";
-      syncDots();
-    }, 700);
+  } catch (e) {
+    console.error("login error:", e);
+    pinShakeAndReset("Network error. Try again.");
+  } finally {
+    pinBusy = false;
   }
 }
-function doLock() {
+async function doLock() {
   const sb = document.querySelector(".sidebar");
   if (sb) sb.classList.remove("open");
   const mp = document.querySelector(".main-panel");
@@ -188,6 +236,11 @@ function doLock() {
   syncDots();
   $("pinErr").textContent = "";
   goTo("pin");
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.error("signOut failed:", e);
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -2344,4 +2397,13 @@ Object.assign(window, {
 ══════════════════════════════════════════════ */
 applyTheme(loadThemeCookie());
 loadAppearance();
-initData();
+
+(async () => {
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) {
+    await initData();
+    goTo("tracker");
+  } else {
+    goTo("pin");
+  }
+})();

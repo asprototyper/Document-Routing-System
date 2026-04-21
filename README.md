@@ -141,12 +141,55 @@ If you want live updates when multiple people have the app open:
 
 ---
 
-## Notes
+## Auth model
 
-- **PIN** remains client-side (`'0723'`). Supabase RLS is set to allow
-  all anon operations — the PIN gates the UI, not the database.
-  If you ever need per-user access control, add Supabase Auth and
-  update the RLS policies in `schema.sql`.
+The app is gated by a 4–8 digit PIN, but the PIN check happens
+**on the server**, not in the browser. Flow:
+
+1. User types PIN in the browser.
+2. Browser `POST /api/login { pin }`.
+3. Server (`api/login.js`) rate-limits by IP, bcrypt-compares against
+   `PIN_HASH`, and on success signs in as a **shared Supabase user**
+   using credentials stored in server env.
+4. Server returns `{ access_token, refresh_token }`.
+5. Browser calls `supabase.auth.setSession(...)` → all subsequent
+   DB calls are authenticated.
+6. RLS policies in `supabase/schema.sql` require an authenticated
+   session, so the anon key alone is inert.
+
+### One-time setup
+
+1. **Create the shared app user** in Supabase → Authentication → Users
+   → "Add user". Use a throwaway email (e.g. `tracker@ntc.local`) and
+   a long random password. This account is what the server signs in
+   as; no one logs in with it directly.
+2. **Generate a PIN hash** locally:
+   ```bash
+   npm run hash-pin 1234
+   ```
+   Copy the printed `PIN_HASH=...` line.
+3. **Set Vercel env vars** (Project → Settings → Environment Variables):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `SUPABASE_URL` (same value, no VITE_ prefix)
+   - `SUPABASE_ANON_KEY` (same value, no VITE_ prefix)
+   - `SUPABASE_SHARED_EMAIL`
+   - `SUPABASE_SHARED_PASSWORD`
+   - `PIN_HASH`
+   - (existing SMTP_* vars for `/api/send-email`)
+4. **Re-run `supabase/schema.sql`** in the SQL editor to apply the
+   new `authenticated`-only RLS policies.
+
+### Rotating the PIN
+
+1. `npm run hash-pin <new-pin>`
+2. Paste the new `PIN_HASH` into Vercel env → save → redeploy.
+
+### Notes
+
+- If you want per-user audit (who stamped what), replace the shared
+  account with real Supabase Auth users and update policies to use
+  `auth.uid()`.
 
 - **No seed data** is loaded in production. The original `makeSeed()`
   function is removed. If you need test data, run the INSERT statements
