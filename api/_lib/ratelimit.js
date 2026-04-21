@@ -1,8 +1,4 @@
-// Simple in-memory IP rate limiter for Vercel serverless functions.
-//
-// Caveat: Vercel may spin up multiple instances and cold-start them, so the
-// window is best-effort per instance. For a low-volume internal tool that's
-// acceptable. If you ever need strict global limits, swap this for Upstash
+//If you ever need strict global limits, swap this for Upstash
 // Redis (@upstash/ratelimit).
 
 const buckets = new Map()

@@ -1,12 +1,3 @@
-#!/usr/bin/env node
-// Generate a bcrypt hash for your app PIN.
-//
-// Usage:
-//   node scripts/hash-pin.mjs 1234
-//   node scripts/hash-pin.mjs            (prompts interactively)
-//
-// Paste the printed hash into Vercel env as PIN_HASH (server-side, NOT VITE_*).
-
 import bcrypt from 'bcryptjs'
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
@@ -33,4 +24,3 @@ if (!/^\d{4,8}$/.test(pin)) {
 
 const hash = await bcrypt.hash(pin, ROUNDS)
 console.log('\nPIN_HASH=' + hash + '\n')
-console.log('Add this line to your Vercel project env vars (server-side).')

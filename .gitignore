@@ -3,3 +3,4 @@ src/.env.local
 dist
 .DS_Store
 .env.local
+*~

@@ -1256,13 +1256,27 @@ async function confirmAppr() {
 /* ══════════════════════════════════════════════
    EMAIL PREVIEW
 ══════════════════════════════════════════════ */
-async function sendEmail(to, subject, body) {
+// The server rebuilds the email body from `type` + docId (or
+// verify fields) to prevent HTML injection via the request.
+// The preview shown to the user must stay in sync with the
+// templates in api/_lib/email-templates.js.
+async function sendEmail(payload) {
+  const { data: sess } = await supabase.auth.getSession();
+  const token = sess?.session?.access_token;
+  if (!token) throw new Error("Not signed in");
+
   const res = await fetch("/api/send-email", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to, subject, body }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Failed to send");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to send");
+  }
 }
 
 function openEmailPrev(type, docId) {
@@ -1309,7 +1323,16 @@ if (type === "verify") {
   $("ep-send-btn").onclick = async () => {
     try {
       setLoading(true, "Sending email…");
-      await sendEmail(email, subj, body);
+      let payload;
+      if (type === "verify") {
+        const entity = $("f-entity") ? $("f-entity").value.trim() : "";
+        const contact = $("f-contact") ? $("f-contact").value.trim() : "";
+        payload = { type, entity, contact, email };
+      } else {
+        if (!doc) throw new Error("Missing document.");
+        payload = { type, docId: doc.id };
+      }
+      await sendEmail(payload);
       if (doc && type !== "verify") {
         const sentField = `email_sent_${type}`;
         await updateDoc(doc.id, { [sentField]: true });
@@ -1322,7 +1345,7 @@ if (type === "verify") {
       else if (selId) renderDetail();
     } catch (e) {
       console.error(e);
-      toast("Failed to send email.", true);
+      toast(e.message || "Failed to send email.", true);
     } finally {
       setLoading(false);
     }
@@ -2209,25 +2232,60 @@ function syncDelPinDots() {
       d.classList.remove("shake");
     });
 }
+let delPinBusy = false;
 function delDocKey(v) {
+  if (delPinBusy) return;
   if (v === "del") docsPinEntry = docsPinEntry.slice(0, -1);
   else if (docsPinEntry.length < 4) docsPinEntry += v;
   syncDelPinDots();
   if (docsPinEntry.length === 4) delDocCheckPin();
 }
+
+function delPinShakeAndReset(msg) {
+  $("del-pin-dots")
+    .querySelectorAll(".pin-dot")
+    .forEach((d) => d.classList.add("shake"));
+  $("del-pin-err").textContent = msg;
+  setTimeout(() => {
+    docsPinEntry = "";
+    syncDelPinDots();
+    $("del-pin-err").textContent = "";
+  }, 700);
+}
+
 async function delDocCheckPin() {
-  if (docsPinEntry !== PIN) {
-    $("del-pin-dots")
-      .querySelectorAll(".pin-dot")
-      .forEach((d) => d.classList.add("shake"));
-    $("del-pin-err").textContent = "Incorrect PIN.";
-    setTimeout(() => {
-      docsPinEntry = "";
-      syncDelPinDots();
-      $("del-pin-err").textContent = "";
-    }, 700);
+  if (delPinBusy) return;
+  delPinBusy = true;
+  $("del-pin-err").textContent = "";
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: docsPinEntry }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 429) {
+      const mins = Math.ceil((data.retryAfter || 60) / 60);
+      delPinShakeAndReset(`Too many attempts. Try again in ~${mins} min.`);
+      return;
+    }
+    if (res.status === 401) {
+      delPinShakeAndReset("Incorrect PIN.");
+      return;
+    }
+    if (!res.ok) {
+      delPinShakeAndReset(data.error || "Verification failed.");
+      return;
+    }
+  } catch (e) {
+    console.error("delete PIN verify failed:", e);
+    delPinShakeAndReset("Network error. Try again.");
     return;
+  } finally {
+    delPinBusy = false;
   }
+
   setLoading(true, "Deleting document…");
   try {
     await deleteDoc(docsDeleteTarget);
