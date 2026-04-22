@@ -2428,6 +2428,82 @@ function docsCurrentPhase(doc) {
   return "—";
 }
 
+// Add this new function
+function renderDocsRows() {
+  let list = [...docs];
+  if (docsFilter !== "all") {
+    list = list.filter((d) => {
+      if (docsFilter === "complete") return isComplete(d);
+      if (docsFilter === "closed") return isClosed(d);
+      if (docsFilter === "pending") return !d.preassess && !isComplete(d) && !isClosed(d);
+      if (docsFilter === "inprog") return d.preassess && !isComplete(d) && !isClosed(d);
+      return true;
+    });
+  }
+  if (docsSearch.trim()) {
+    const q = docsSearch.trim().toLowerCase();
+    list = list.filter((d) =>
+      d.entity.toLowerCase().includes(q) ||
+      d.contact.toLowerCase().includes(q) ||
+      d.email.toLowerCase().includes(q) ||
+      (d.remarks || "").toLowerCase().includes(q),
+    );
+  }
+  list.sort((a, b) => {
+    switch (docsSort) {
+      case "created_desc": return new Date(b.createdAt) - new Date(a.createdAt);
+      case "created_asc":  return new Date(a.createdAt) - new Date(b.createdAt);
+      case "entity_asc":   return a.entity.localeCompare(b.entity);
+      case "entity_desc":  return b.entity.localeCompare(a.entity);
+      case "progress_desc": return docsPct(b) - docsPct(a);
+      case "progress_asc":  return docsPct(a) - docsPct(b);
+      default: return 0;
+    }
+  });
+
+  const tbody = document.querySelector(".dsp-tbody");
+  const countEl = document.querySelector(".dsp-count");
+  const clearBtn = document.querySelector(".dsp-clear");
+
+  if (countEl) countEl.textContent = `${list.length} of ${docs.length}`;
+  if (clearBtn) clearBtn.style.display = docsSearch ? "" : "none";
+
+  if (!tbody) { renderDocsPage(); return; } // fallback if full page not rendered yet
+
+  tbody.innerHTML = list.length
+    ? list.map((d) => {
+        const pct = docsPct(d);
+        const { txt, cls } = docsStatusInfo(d);
+        const phase = docsCurrentPhase(d);
+        const barClr = isComplete(d) ? "var(--green)" : isClosed(d) ? "var(--red)" : "var(--blue)";
+        const created = new Date(d.createdAt).toLocaleDateString("en-PH", {
+          year: "numeric", month: "short", day: "numeric",
+        });
+        return `<div class="dsp-row">
+      <div class="dsp-td dsp-td-entity"><div class="dsp-entity">${esc(d.entity)}</div><div class="dsp-sub">${esc(d.contact)} · ${esc(d.email)}</div></div>
+      <div class="dsp-td"><span class="dsp-status ${cls}">${txt}</span></div>
+      <div class="dsp-td dsp-td-prog">
+        <div class="dsp-prog-wrap">
+          <div class="dsp-prog-bar"><div class="dsp-prog-fill" style="width:${isClosed(d) ? 0 : pct}%;background:${barClr}"></div></div>
+          <span class="dsp-prog-pct">${isClosed(d) ? "inc" : pct + "%"}</span>
+        </div>
+      </div>
+      <div class="dsp-td dsp-td-phase">${phase}</div>
+      <div class="dsp-td dsp-td-stage">${esc(lastLabel(d))}</div>
+      <div class="dsp-td dsp-td-date">${created}</div>
+      <div class="dsp-td dsp-td-act">
+        <button class="dsp-open-btn" onclick="docsOpenTracker('${d.id}')" title="Open in Tracker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+        <button class="dsp-del-btn" onclick="docsConfirmDelete('${d.id}')" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+      }).join("")
+    : `<div class="dsp-empty"><div class="dsp-empty-ic">⬡</div><div>${docsSearch || docsFilter !== "all" ? "No documents match." : "No documents yet."}</div></div>`;
+}
+
 function renderDocsPage() {
   const body = $("docsPageBody");
   if (!body) return;
@@ -2769,7 +2845,7 @@ Object.assign(window, {
   doExportMetrics,
   setDocsFilter: (v) => { docsFilter = v; renderDocsPage(); },
   setDocsSort: (asc, desc) => { docsSort = docsSort === asc ? desc : asc; renderDocsPage(); },
-  setDocsSearch: (v) => { docsSearch = v; renderDocsPage(); },
+  setDocsSearch: (v) => { docsSearch = v; renderDocsRows(); },
 });
 
 /* ══════════════════════════════════════════════
