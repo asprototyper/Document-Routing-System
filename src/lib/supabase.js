@@ -10,3 +10,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+export async function signIn(password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: 'ntcdrs@ntc.gov.ph',
+    password,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function signOut() {
+  await supabase.auth.signOut()
+}
+
+export async function getSession() {
+  const { data } = await supabase.auth.getSession()
+  return data.session
+}

@@ -8,6 +8,8 @@ import {
   deleteDoc,
 } from "./lib/db.js";
 
+import { signIn, signOut, getSession } from "./lib/supabase.js";
+
 import { exportSummaryPDF, exportMetricsPDF } from "./pdfexport.js";
 
 /* ══════════════════════════════════════════════
@@ -534,6 +536,11 @@ function workMs(a, b) {
    INIT
 ══════════════════════════════════════════════ */
 async function initData() {
+  const session = await getSession()
+  if (!session) {
+    goTo("pin")
+    return
+  }
   setLoading(true, "Loading documents…");
   try {
     docs = await loadAllDocs();
@@ -583,22 +590,25 @@ function syncDots() {
     d.classList.remove("shake");
   });
 }
-function checkPin() {
-  if (pin === PIN) {
-    $("pinErr").textContent = "";
-    setTimeout(() => goTo("tracker"), 200);
-  } else {
+async function checkPin() {
+  try {
+    await signIn(pin)
+    $("pinErr").textContent = ""
+    setTimeout(() => goTo("tracker"), 200)
+  } catch (e) {
     document
       .querySelectorAll(".pin-dot")
-      .forEach((d) => d.classList.add("shake"));
-    $("pinErr").textContent = "Incorrect PIN — try again.";
+      .forEach((d) => d.classList.add("shake"))
+    $("pinErr").textContent = "Incorrect PIN — try again."
     setTimeout(() => {
-      pin = "";
-      syncDots();
-    }, 700);
+      pin = ""
+      syncDots()
+    }, 700)
   }
 }
-function doLock() {
+
+async function doLock() {
+  await signOut()
   const sb = document.querySelector(".sidebar");
   if (sb) sb.classList.remove("open");
   const mp = document.querySelector(".main-panel");

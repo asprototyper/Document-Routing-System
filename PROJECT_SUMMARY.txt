@@ -1,0 +1,227 @@
+================================================================================
+                    NTC DOCUMENT TRACKER - PROJECT SUMMARY
+================================================================================
+
+PROJECT PURPOSE
+================================================================================
+A web-based document management and certification tracking system that manages 
+documents through multi-phase workflows. Includes PIN-based access control, 
+document stage stamping, NOD (Notice of Deficiency) tracking, and certificate 
+outcome management with full audit logging.
+
+Workflow: Documents progress through phases with stage-stamping, pre-assessment 
+tracking, Phase 3 merge decisions, and certificate outcomes (approved/disapproved).
+
+================================================================================
+TECH STACK
+================================================================================
+
+Frontend Build       | Vite 5.0.0
+Frontend Framework   | Vanilla HTML5, CSS3, JavaScript (no framework)
+Database             | Supabase (PostgreSQL) with RLS & Realtime
+Backend              | Node.js Vercel Serverless Functions
+Email Service        | Nodemailer 8.0.2 (SMTP)
+PDF Export           | html2canvas + jsPDF
+UI Fonts             | Google Fonts (DM Mono, EB Garamond, Fraunces)
+Dependency SDK       | @supabase/supabase-js 2.39.0
+Deployment           | Vercel (Serverless hosting with SPA rewrites)
+
+Dev Dependencies: Vite only
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+Document Routing System/
+│
+├── src/                           # Frontend source code
+│   ├── index.html                # Main SPA (PIN screen, Tracker, Metrics)
+│   ├── scripts.js                # App logic & UI interactions
+│   ├── styles.css                # Application styling
+│   ├── pdfexport.js              # PDF export functions
+│   └── lib/
+│       ├── supabase.js           # Supabase client initialization
+│       └── db.js                 # Database operations layer
+│
+├── api/
+│   └── send-email.js             # Vercel serverless email endpoint
+│
+├── public/
+│   └── img/                      # Logo assets (4 theme variants)
+│       ├── ntc-logo-dark.png
+│       ├── ntc-logo-light.png
+│       ├── ntc-logo-slate.png
+│       ├── ntc-logo-warm.png
+│       ├── ntc-logo2-dark.png
+│       ├── ntc-logo2-light.png
+│       ├── ntc-logo2-slate.png
+│       └── ntc-logo2-warm.png
+│
+├── supabase/
+│   └── schema.sql                # Database schema (tables, RLS, triggers)
+│
+├── vite.config.js                # Vite build configuration
+├── vercel.json                   # Vercel deployment config (SPA rewrites)
+├── package.json                  # Dependencies & scripts
+├── README.md                     # Setup & migration guide
+├── .env.example                  # Environment variables template
+└── .env.local                    # Local environment variables
+
+================================================================================
+KEY ENTRY POINTS
+================================================================================
+
+FRONTEND ENTRY POINT
+---------------------
+src/index.html
+  - Single Page Application with three pages:
+    * PIN Page: Secure numeric keypad entry
+    * Tracker Page: Main document tracking UI with sidebar & detail panel
+    * Metrics Page: Document statistics and reporting
+
+FRONTEND LOGIC
+---------------------
+src/scripts.js
+  - Theme system (4 themes: light, dark, slate, warm)
+  - Font selection & sizing
+  - Modal & detail rendering
+  - Stage stamping workflow
+  - Settings & sidebar management
+
+DATABASE LAYER
+---------------------
+src/lib/db.js - Database abstraction functions:
+  - loadAllDocs()      → Load all documents with stages
+  - createDoc()        → Create new document
+  - updateDoc()        → Update document fields
+  - stampStage()       → Record stage completion
+  - redactStage()      → Remove stage record (audit-logged)
+  - redactTsField()    → Remove timestamp field
+  - deleteDoc()        → Delete document
+
+src/lib/supabase.js
+  - Supabase client initialization
+  - Reads VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY env vars
+
+API ENDPOINT
+---------------------
+api/send-email.js
+  - Vercel serverless function at POST /api/send-email
+  - Takes: { to, subject, body }
+  - Uses SMTP config from environment variables
+  - Returns: { ok: true } or error response
+
+PDF EXPORT
+---------------------
+src/pdfexport.js
+  - exportSummaryPDF()   → Document summary PDF
+  - exportMetricsPDF()   → Metrics report PDF
+
+BUILD CONFIGURATION
+---------------------
+vite.config.js
+  - root: 'src/'
+  - publicDir: '../public'
+  - outDir: '../dist'
+
+================================================================================
+DATABASE SCHEMA
+================================================================================
+
+Three Core Tables:
+
+DOCUMENTS TABLE
+  - Core document metadata and workflow tracking
+  - Key fields:
+    * id (primary key)
+    * entity, contact, email, remarks
+    * preassess (complete/incomplete), pa_ts
+    * nod_legal, nod_tech, nod_fin (boolean flags per track)
+    * p3decision (compliant/nod), p3merge_ts
+    * cert_outcome (approved/disapproved), cert_decision_ts
+    * Phase notifications: p3b_notif_ts, p6a_notif_ts, p6b_notif_ts, etc.
+    * timestamps: created_at, updated_at
+
+STAGES TABLE
+  - Stage history and completion records
+  - Key fields:
+    * id (primary key)
+    * doc_id (foreign key)
+    * stage_key
+    * stamped_at
+    * passed_by, sent_by
+  - Unique constraint: (doc_id, stage_key)
+
+AUDIT_LOG TABLE
+  - Change history for all modifications
+  - Key fields:
+    * id (primary key)
+    * doc_id (foreign key)
+    * action (redact_stage/redact_ts)
+    * field_key
+    * prev_value
+    * timestamp
+
+Key Features:
+  - ROW LEVEL SECURITY (RLS): All operations allowed from anon key (PIN-gated in UI)
+  - Automatic updated_at trigger on documents table
+  - Optional Realtime publication for live cross-tab updates
+
+================================================================================
+BUILD & DEPLOYMENT
+================================================================================
+
+DEVELOPMENT
+-----------
+npm run dev      → Start Vite dev server (http://localhost:5173)
+npm run build    → Production build (output: dist/)
+npm run preview  → Preview built app locally
+
+DEPLOYMENT
+----------
+Platform: Vercel (vercel.json)
+  - SPA rewrites: all routes → index.html
+  - Serverless function: /api/send-email
+  
+Environment Variables Required:
+  - VITE_SUPABASE_URL
+  - VITE_SUPABASE_ANON_KEY
+  - SMTP_HOST
+  - SMTP_PORT
+  - SMTP_USER
+  - SMTP_PASS
+  - SMTP_FROM
+
+================================================================================
+INITIAL SETUP CHECKLIST
+================================================================================
+
+1. Create Supabase project & run supabase/schema.sql in SQL editor
+2. Copy logo files to public/img/ (4 theme variants)
+3. npm install
+4. Configure .env.local with Supabase & SMTP credentials
+5. npm run dev  (or deploy to Vercel)
+
+Environment Variables Template:
+  VITE_SUPABASE_URL=https://xxxx.supabase.co
+  VITE_SUPABASE_ANON_KEY=your-anon-key
+  SMTP_HOST=smtp.example.com
+  SMTP_PORT=587
+  SMTP_USER=user@example.com
+  SMTP_PASS=password
+  SMTP_FROM=noreply@example.com
+
+================================================================================
+PROJECT TYPE
+================================================================================
+
+This is a production-ready document tracking system with:
+  ✓ Multi-tenant isolation via PIN authentication
+  ✓ Full audit trails for all changes
+  ✓ Email notifications via serverless functions
+  ✓ PDF export capabilities
+  ✓ Real-time database synchronization (Supabase Realtime)
+  ✓ Row-level security for data protection
+  ✓ Multi-phase workflow management
+
+================================================================================

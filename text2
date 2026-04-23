@@ -1,4 +1,0 @@
-<button class="theme-btn" data-theme="dark" onclick="applyTheme('dark')" title="Dark">Dark</button>
-<button class="theme-btn" data-theme="light" onclick="applyTheme('light')" title="Light">Light</button>
-<button class="theme-btn" data-theme="slate" onclick="applyTheme('slate')" title="slate">Slate</button>
-<button class="theme-btn" data-theme="warm" onclick="applyTheme('warm')" title="Warm">Warm</button>
