@@ -28,7 +28,7 @@ const MT = 18;          // margin top
 const MB = 18;          // margin bottom (footer clearance)
 const CW = PAGE_W - ML - MR;   // 182mm usable width
 const LINE_H = 5.2;    // standard line height (mm)
-const FOOTER_Y = PAGE_H - MB + 4;
+
 
 /* ── formatters ───────────────────────────────────────────────────── */
 function fmtTs(iso) {
@@ -204,7 +204,7 @@ class Report {
      rows: array of data objects
      Each col.w must sum to CW.
   */
-  table(cols, rows, opts = {}) {
+  table(cols, rows, _opts = {}) {
     const p = this.pdf;
     const ROW_PAD = 1.5; // vertical padding inside each cell
 

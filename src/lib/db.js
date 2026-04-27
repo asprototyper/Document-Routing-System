@@ -130,7 +130,9 @@ export async function createDoc(doc) {
 export async function updateDoc(docId, changes) {
   const payload = {};
   for (const [k, v] of Object.entries(changes)) {
-    payload[COL_MAP[k] ?? k] = v;
+    const col = COL_MAP[k];
+    if (!col) throw new Error(`Unknown field: ${k}`);
+    payload[col] = v;
   }
   const { error } = await supabase
     .from("documents")

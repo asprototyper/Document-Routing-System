@@ -594,7 +594,7 @@ async function checkPin() {
   try {
     await signIn(pin)
     $("pinErr").textContent = ""
-    setTimeout(() => goTo("tracker"), 200)
+    setTimeout(() => goTo("tracker"), 500)
   } catch (e) {
     document
       .querySelectorAll(".pin-dot")
@@ -650,8 +650,8 @@ function goTo(name) {
   const mn = $("mobileNav");
   if (mn) mn.style.display = name === "pin" ? "none" : "flex";
   if (name === "metrics") renderMetrics();
-  if (name === "tracker") {
-    renderSidebar();
+if (name === "tracker") {
+    initData();
     if (window.innerWidth > 900 && !sidebarManuallyClosed) {
       openSidebar();
     }
@@ -739,6 +739,9 @@ $("sbSearch").addEventListener("input", renderSidebar);
 ══════════════════════════════════════════════ */
 function selDoc(id) {
   selId = id;
+  stampCtx = null;
+  tsCtx = null;
+  redactCtx = null;
   renderSidebar();
   $("emptyView").style.display = "none";
   $("docDetail").classList.add("vis");
@@ -1660,7 +1663,10 @@ async function confirmAppr() {
 async function sendEmail(to, subject, body) {
   const res = await fetch("/api/send-email", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${import.meta.env.VITE_API_SECRET}`
+    },
     body: JSON.stringify({ to, subject, body }),
   });
   if (!res.ok) throw new Error("Failed to send");
