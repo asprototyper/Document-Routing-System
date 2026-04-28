@@ -40,6 +40,7 @@ function rowToDoc(row, stageRows) {
     email_sent_p3b_notify: row.email_sent_p3b_notify ?? false,
     email_sent_p6a_notify: row.email_sent_p6a_notify ?? false,
     email_sent_p6b_notify: row.email_sent_p6b_notify ?? false,
+    deadlineExtended: row.deadline_extended ?? false,
   };
 }
 
@@ -87,6 +88,7 @@ const COL_MAP = {
   email_sent_p6a_notify: 'email_sent_p6a_notify',
   email_sent_p6b_notify: 'email_sent_p6b_notify',
   emailVerified: "email_verified",
+  deadlineExtended: 'deadline_extended',
   
 };
 

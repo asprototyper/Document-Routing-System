@@ -451,6 +451,7 @@ let apprDocId = null;
 let redactCtx = null;
 let docsDeleteTarget = null,
   docsPinEntry = "";
+let bypassMode = false;
 let docsSearch = "",
   docsSort = "created_desc",
   docsFilter = "all";
@@ -773,11 +774,17 @@ function buildRows(defs, doc, trackKey, locked) {
           : `<span class="sr-ts">${fmt(ts)}</span>`;
       else if (isNxt && !isClosed(doc) && !isComplete(doc)) {
         if (s.isApproval)
-          right = `<button class="stmp" data-doc="${doc.id}" data-track="${trackKey}" data-idx="${i}">Stamp</button>`;
+          right = `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          <button class="stmp" data-doc="${doc.id}" data-track="${trackKey}" data-idx="${i}">Stamp</button>
+          <button class="stmp" data-doc="${doc.id}" data-track="${trackKey}" data-idx="${i}" data-bypass="1" style="font-size:10px;padding:3px 8px;border-color:var(--warn);color:var(--warn)">Bypass</button>
+        </div>`;
         else if (s.isCertDecision)
           right = `<button class="stmp" data-doc="${doc.id}" data-track="cert_decision" data-idx="0">Record</button>`;
         else
-          right = `<button class="stmp" data-doc="${doc.id}" data-track="${trackKey}" data-idx="${i}">Stamp</button>`;
+          right = `<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+  <button class="stmp" data-doc="${doc.id}" data-track="${trackKey}" data-idx="${i}">Stamp</button>
+  <button class="stmp" data-doc="${doc.id}" data-track="${trackKey}" data-idx="${i}" data-bypass="1" style="font-size:10px;padding:3px 8px;border-color:var(--warn);color:var(--warn)">Bypass</button>
+</div>`;
       } else right = `<span class="sr-ts empty">—</span>`;
       return `<div class="sr ${cls}">
       <div class="sr-dot-col"><div class="sr-dot"></div><div class="sr-line"></div></div>
@@ -1264,15 +1271,15 @@ if (p6aUnlocked) {
         );
       });
     });
-  $("docDetail")
-    .querySelectorAll(".stmp[data-doc]")
-    .forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const { doc: dId, track, idx } = btn.dataset;
-        if (track === "cert_decision") openApprovalModal(dId);
-        else openStamp(dId, track, parseInt(idx));
+    $("docDetail")
+      .querySelectorAll(".stmp[data-doc]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const { doc: dId, track, idx, bypass } = btn.dataset;
+          if (track === "cert_decision") openApprovalModal(dId);
+          else openStamp(dId, track, parseInt(idx), !!bypass);
+        });
       });
-    });
 }
 
 /* ══════════════════════════════════════════════
@@ -1286,7 +1293,7 @@ function openCreate() {
   $("f-emailVerif").checked = false;
   $("cb-lbl").className = "cb-lbl";
   $("cb-lbl").textContent = "Email Verified";
-  $("f-created").textContent = fmt(new Date().toISOString());
+  $("f-created").value = nowLocal();
   clearErrs("ov-create");
   openOv("ov-create");
   $("f-entity").focus();
@@ -1323,7 +1330,7 @@ async function saveDoc() {
     email,
     emailVerified: $("f-emailVerif").checked,
     remarks: $("f-remarks").value.trim(),
-    createdAt: new Date().toISOString(),
+    createdAt: new Date($("f-created").value).toISOString(),
     stages: {},
     preassess: null,
     paTs: null,
@@ -1480,15 +1487,19 @@ async function confirmP3Merge(docId) {
 /* ══════════════════════════════════════════════
    STAMP MODAL
 ══════════════════════════════════════════════ */
-function openStamp(docId, track, idx) {
+function openStamp(docId, track, idx, bypass = false) {
   const defs = TRACK_MAP[track];
   if (!defs) return;
   const sd = defs[idx];
   if (!sd) return;
+  bypassMode = bypass;
   stampCtx = { docId, track, idx, sd };
+
+  const needsExtra = sd.passedBy || sd.sentBy;
+
   $("sm-name").textContent = sd.label.replace(/&amp;/g, "&");
   $("sm-hint").textContent = sd.hint || "Set the date and time.";
-  $("sm-note").textContent = "";
+  $("sm-note").textContent = bypass ? "⚠ Bypass mode — select a backdated time." : "";
   $("sm-passedby-grp").style.display = sd.passedBy ? "block" : "none";
   $("sm-sentby-grp").style.display = sd.sentBy ? "block" : "none";
   if (sd.passedBy) {
@@ -1501,11 +1512,58 @@ function openStamp(docId, track, idx) {
     $("sm-sentby").classList.remove("err");
     $("sme-sentby").classList.remove("on");
   }
+
+  // Show/hide date picker depending on mode
+const dtGrp = $("sm-dt-grp");
+  if (dtGrp) dtGrp.style.display = bypass || !needsExtra ? "block" : "none";
+
   $("sm-dt").value = nowLocal();
   $("sm-dt").classList.remove("err");
   $("sme-dt").classList.remove("on");
   $("sme-future").classList.remove("on");
+
+  if (bypass) {
+    const doc = docs.find((d) => d.id === docId);
+    // find previous stamp time
+    const pathStages = ALL_STAGES;
+    let prevTime = doc ? doc.createdAt : null;
+    for (const s of pathStages) {
+      if (s.key === sd.key) break;
+      if (doc?.stages[s.key]?.stampedAt) prevTime = doc.stages[s.key].stampedAt;
+    }
+    $("sm-dt").min = prevTime ? new Date(prevTime).toISOString().slice(0, 16) : "";
+    $("sm-dt").max = "";
+  } else {
+    $("sm-dt").min = "";
+    $("sm-dt").max = nowLocal();
+  }
+
+  // If no extra fields and not bypass — instant stamp, no modal
+  if (!bypass && !needsExtra) {
+    doInstantStamp(docId, sd);
+    return;
+  }
+
   openOv("ov-stamp");
+}
+
+async function doInstantStamp(docId, sd) {
+  const doc = docs.find((d) => d.id === docId);
+  const ts = new Date().toISOString();
+  setLoading(true, "Stamping stage…");
+  try {
+    await stampStage(docId, sd.key, ts, {});
+    doc.stages[sd.key] = { stampedAt: ts };
+    renderSidebar();
+    renderDetail();
+    if ($("pg-simple").classList.contains("active")) renderSimple();
+    toast("Stage recorded.");
+  } catch (e) {
+    console.error(e);
+    toast("Failed to save stage.", true);
+  } finally {
+    setLoading(false);
+  }
 }
 
 async function doStamp() {
@@ -1549,13 +1607,30 @@ async function doStamp() {
     markErr("sm-sentby", "sme-sentby");
     ok = false;
   }
-  const dt = $("sm-dt").value;
-  if (!dt) {
+  const dt = bypassMode ? $("sm-dt").value : nowLocal();
+  if (bypassMode && !dt) {
     markErr("sm-dt", "sme-dt");
     ok = false;
-  } else if (new Date(dt) > new Date()) {
+  } else if (bypassMode && new Date(dt) > new Date()) {
     markErr("sm-dt", "sme-future");
     ok = false;
+  } else if (bypassMode && dt) {
+    const doc = docs.find((d) => d.id === stampCtx.docId);
+    // find the minimum allowed time (createdAt or last stamp before this stage)
+    let minTime = doc ? new Date(doc.createdAt) : null;
+    for (const s of ALL_STAGES) {
+      if (s.key === stampCtx.sd.key) break;
+      if (doc?.stages[s.key]?.stampedAt) {
+        const t = new Date(doc.stages[s.key].stampedAt);
+        if (!minTime || t > minTime) minTime = t;
+      }
+    }
+    if (minTime && new Date(dt) < minTime) {
+      $("sm-dt").classList.add("err");
+      $("sme-dt").classList.add("on");
+      $("sme-dt").textContent = `Date must be after ${fmt(minTime.toISOString())}.`;
+      ok = false;
+    }
   }
   if (!ok) return;
   const doc = docs.find((d) => d.id === stampCtx.docId);

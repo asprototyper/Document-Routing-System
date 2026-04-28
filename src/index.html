@@ -244,11 +244,11 @@
         <div class="fdiv"></div>
         <div class="fg">
           <div class="fl">Date & Stamp; Time Created</div>
-          <div class="fro" id="f-created">— set automatically —</div>
+          <input type="datetime-local" id="f-created" class="fi" style="max-width:260px">
         </div>
       </div>
       <div class="m-ft">
-        <span class="m-ft-note">Timestamp set automatically on save.</span>
+        <span class="m-ft-note">Defaults to now — edit to backdate from logbook.</span>
         <div class="m-ft-btns">
           <button class="btn btn-ghost" onclick="closeOv('ov-create')">Cancel</button>
           <button class="btn btn-primary" onclick="saveDoc()">Create Document</button>
@@ -278,7 +278,11 @@
         </div>
         <div class="fg">
           <div class="fl">Date & Stamp; Time <span class="req">*</span></div>
-          <input type="datetime-local" id="sm-dt" class="fi">
+          <div id="sm-dt-grp">
+            <input type="datetime-local" id="sm-dt" class="fi">
+            <div class="ferr" id="sme-dt">Please set a date and time.</div>
+            <div class="ferr" id="sme-future">Timestamp cannot be in the future.</div>
+          </div>
           <div class="ferr" id="sme-dt">Required.</div>
           <div class="ferr" id="sme-future">Cannot be a future time.</div>
         </div>
