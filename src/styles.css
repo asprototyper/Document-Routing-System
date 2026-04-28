@@ -82,6 +82,37 @@ body {
   }
 }
 
+/* ── Deadline indicators ── */
+.dl-dot { font-size: 10px; line-height: 1; }
+
+.dl-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+.dl-ontime-banner  { background: var(--green-soft); border-color: rgba(26,122,74,.2); color: var(--green); }
+.dl-atrisk-banner  { background: rgba(180,83,9,.08); border-color: rgba(180,83,9,.2); color: var(--warn); }
+.dl-late-banner    { background: var(--red-soft); border-color: rgba(192,57,43,.2); color: var(--red); }
+.dl-complete       { background: var(--s2); border-color: var(--b1); color: var(--muted); }
+
+.dl-phase-note { margin-top: 6px; font-size: 11px; }
+.dl-phase-late   { color: var(--red); }
+.dl-phase-atrisk { color: var(--warn); }
+
+.di-dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  margin-top: 3px;
+}
+.det-meta-sep {
+  color: var(--dim);
+  margin: 0 2px;
+}
+
 .pin-logo {
   font-family: "Fraunces", serif;
   font-size: 32px;

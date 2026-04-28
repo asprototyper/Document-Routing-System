@@ -416,6 +416,8 @@ const ALL_STAGES = [
   ...PHASE8,
 ];
 
+
+
 const TRACK_MAP = {
   p1a: PHASE1A,
   p1b: PHASE1B,
@@ -435,6 +437,155 @@ const TRACK_MAP = {
   p7: PHASE7,
   p8: PHASE8,
 };
+
+/* ══════════════════════════════════════════════
+   PHASE TIMES (working milliseconds)
+══════════════════════════════════════════════ */
+const WD = 8 * 3600000  // 1 working day in ms
+const WH = 3600000      // 1 working hour in ms
+
+const PHASE_TIMES = {
+  p1:      1 * WD,                    // 1 day — pre-assessment
+  p2:      1 * WD,                    // 1 day — record & route
+  p3:      7 * WD,                    // 7 days — parallel evaluation
+  p4a:     (3 + 1 + 1) * WD + 4 * WH, // 3d briefer + 1d chief + 1d director + 4h CDO
+  p4a_odc: 2 * WD,                    // 1d deputy + 1d commissioner
+  p5:      2 * WH,                    // 2 hours — record receipt
+  p5a:     (3 + 1 + 1) * WH,         // 3h + 1h + 1h SOA
+  p5b:     (4 + 4 + 4) * WH,         // 4h + 4h + 4h disapproval
+  p6:      2 * WH,                    // 2 hours — notify applicant
+  p8:      2 * WH + 40 * 60000,      // 2h release + 40min scan
+  total:   20 * WD,                   // 20 working days full lifecycle
+}
+
+/* ══════════════════════════════════════════════
+   DEADLINE CALCULATORS
+══════════════════════════════════════════════ */
+
+function addWorkingMs(fromIso, ms) {
+  // Returns a Date that is `ms` working milliseconds after fromIso
+  let remaining = ms
+  let cur = new Date(fromIso)
+  while (remaining > 0) {
+    const day = cur.getDay()
+    if (day >= 1 && day <= 5) {
+      const ws = new Date(cur); ws.setHours(8, 0, 0, 0)
+      const we = new Date(cur); we.setHours(17, 0, 0, 0)
+      const start = cur < ws ? ws : cur
+      const avail = we - start
+      if (avail <= 0) {
+        cur = new Date(cur); cur.setDate(cur.getDate() + 1); cur.setHours(8, 0, 0, 0)
+        continue
+      }
+      if (remaining <= avail) {
+        return new Date(start.getTime() + remaining)
+      }
+      remaining -= avail
+    }
+    cur = new Date(cur); cur.setDate(cur.getDate() + 1); cur.setHours(8, 0, 0, 0)
+  }
+  return cur
+}
+
+function deadlineStatus(usedMs, allowedMs) {
+  if (usedMs >= allowedMs) return 'late'
+  if (usedMs >= allowedMs * 0.8) return 'atrisk'
+  return 'ontime'
+}
+
+function getDocDeadline(doc) {
+  if (isComplete(doc)) return { status: 'complete', remainingMs: 0, deadlineTs: null }
+  if (isClosed(doc))   return { status: 'closed',   remainingMs: 0, deadlineTs: null }
+
+  const allowed = doc.deadlineExtended ? PHASE_TIMES.total * 2 : PHASE_TIMES.total
+  const deadlineTs = addWorkingMs(doc.createdAt, allowed)
+  const usedMs = workMs(doc.createdAt, new Date().toISOString())
+  const remainingMs = allowed - usedMs
+  const status = deadlineStatus(usedMs, allowed)
+
+  return { status, remainingMs, deadlineTs, usedMs, allowed }
+}
+
+function getActivePhaseDeadline(doc) {
+  // Returns the current active phase deadline info, or null if none
+  if (isComplete(doc) || isClosed(doc)) return null
+
+  const now = new Date().toISOString()
+
+  // Determine active phase and its start time + allowed time
+  const p1aDone = !!doc.stages['p1a_eng_accept']
+  const p2Done  = PHASE2.every(s => doc.stages[s.key])
+  const legalDone = PHASE3_LEGAL.every(s => doc.stages[s.key])
+  const techDone  = PHASE3_TECH.every(s => doc.stages[s.key])
+  const finDone   = PHASE3_FIN.every(s => doc.stages[s.key])
+  const allP3Done = legalDone && techDone && finDone
+  const anyNOD    = doc.nod_legal || doc.nod_tech || doc.nod_fin
+  const p3DecisionSet = !!doc.p3decision
+  const p3aDone = allP3Done && p3DecisionSet && doc.p3decision === 'compliant' && PHASE3A.every(s => doc.stages[s.key])
+  const p3bDone = allP3Done && anyNOD && PHASE3B.every(s => doc.stages[s.key])
+  const p4Unlocked = p3aDone || p3bDone
+  const p4aDone = p4Unlocked && PHASE4A.every(s => doc.stages[s.key])
+  const certDecSet = !!doc.certOutcome
+  const p5aDone = certDecSet && doc.certOutcome === 'approved' && PHASE5A.every(s => doc.stages[s.key])
+  const p5bDone = certDecSet && doc.certOutcome === 'disapproved' && PHASE5B.every(s => doc.stages[s.key])
+  const p6aDone = p5aDone && PHASE6A.every(s => doc.stages[s.key])
+
+  let phase = null, startTs = null, allowedMs = null
+
+  if (!doc.preassess) {
+    phase = 'Phase 1'; startTs = doc.createdAt; allowedMs = PHASE_TIMES.p1
+  } else if (!p1aDone) {
+    phase = 'Phase 1'; startTs = doc.paTs || doc.createdAt; allowedMs = PHASE_TIMES.p1
+  } else if (!p2Done) {
+    phase = 'Phase 2'; startTs = doc.stages['p1a_eng_accept']?.stampedAt; allowedMs = PHASE_TIMES.p2
+  } else if (!allP3Done || (!p3DecisionSet && !anyNOD)) {
+    phase = 'Phase 3'; startTs = doc.stages['p2_cdo_route']?.stampedAt; allowedMs = PHASE_TIMES.p3
+  } else if (p4Unlocked && !p4aDone) {
+    phase = 'Phase 4A'; startTs = doc.stages['p4a_cdo_accept']?.stampedAt; allowedMs = PHASE_TIMES.p4a + PHASE_TIMES.p4a_odc
+  } else if (p4aDone && !certDecSet) {
+    phase = 'Phase 5'; startTs = doc.stages['p4a_odc']?.stampedAt; allowedMs = PHASE_TIMES.p5
+  } else if (certDecSet && doc.certOutcome === 'approved' && !p5aDone) {
+    phase = 'Phase 5A'; startTs = doc.stages['p5_receipt']?.stampedAt; allowedMs = PHASE_TIMES.p5a
+  } else if (certDecSet && doc.certOutcome === 'disapproved' && !p5bDone) {
+    phase = 'Phase 5B'; startTs = doc.stages['p5_receipt']?.stampedAt; allowedMs = PHASE_TIMES.p5b
+  } else if ((p5aDone || p5bDone) && !p6aDone && !doc.p6b_return_ts) {
+    phase = 'Phase 6'; startTs = doc.stages['p5a_dir_soa']?.stampedAt || doc.stages['p5b_odc_issue']?.stampedAt; allowedMs = PHASE_TIMES.p6
+  } else if (p6aDone && doc.p6a_notif_ts && !isComplete(doc)) {
+    phase = 'Phase 8'; startTs = doc.stages['p8_recv_client']?.stampedAt; allowedMs = PHASE_TIMES.p8
+  }
+
+  if (!phase || !startTs || !allowedMs) return null
+
+  const usedMs = workMs(startTs, now)
+  const status = deadlineStatus(usedMs, allowedMs)
+  const remainingMs = allowedMs - usedMs
+
+  return { phase, startTs, allowedMs, usedMs, remainingMs, status }
+}
+
+function fmtDuration(ms) {
+  if (ms <= 0) return '0m'
+  const totalMin = Math.round(Math.abs(ms) / 60000)
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  const d = Math.floor(h / 8)
+  const rh = h % 8
+  if (d > 0 && rh === 0) return `${d}d`
+  if (d > 0) return `${d}d ${rh}h`
+  if (h > 0 && m === 0) return `${h}h`
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
+}
+
+function phaseDeadlineTag(phase, doc) {
+  const ap = getActivePhaseDeadline(doc)
+  if (!ap || ap.phase !== phase) return ''
+  const color = ap.status === 'late' ? 'var(--red)' : ap.status === 'atrisk' ? 'var(--warn)' : 'var(--green)'
+  const text = ap.remainingMs >= 0
+    ? `${fmtDuration(ap.remainingMs)} left`
+    : `${fmtDuration(Math.abs(ap.remainingMs))} overdue`
+  return `<span style="font-size:11px;font-weight:400;color:${color};margin-left:8px">${text}</span>`
+}
 
 /* ══════════════════════════════════════════════
    APP STATE
@@ -715,9 +866,38 @@ function renderSidebar() {
     }</div>`;
     return;
   }
-  el.innerHTML = list
-    .map(
-      (d) => `
+el.innerHTML = list
+    .map((d) => {
+      const dl = getDocDeadline(d)
+      const ap = getActivePhaseDeadline(d)
+
+      const dlColor = dl.status === 'late'   ? 'color:var(--red)'
+                    : dl.status === 'atrisk' ? 'color:var(--warn)'
+                    : dl.status === 'ontime' ? 'color:var(--green)'
+                    : 'color:var(--muted)'
+
+      const apColor = ap?.status === 'late'   ? 'color:var(--red)'
+                    : ap?.status === 'atrisk' ? 'color:var(--warn)'
+                    : ap?.status === 'ontime' ? 'color:var(--green)'
+                    : 'color:var(--muted)'
+
+      const overallLine = dl.status === 'complete' || dl.status === 'closed'
+        ? ''
+        : dl.remainingMs >= 0
+          ? `<span style="${dlColor}">Doc: ${fmtDuration(dl.remainingMs)} left</span>`
+          : `<span style="${dlColor}">Doc: ${fmtDuration(dl.remainingMs)} overdue</span>`
+
+      const phaseLine = ap
+        ? ap.remainingMs >= 0
+          ? `<span style="${apColor}">${ap.phase}: ${fmtDuration(ap.remainingMs)} left</span>`
+          : `<span style="${apColor}">${ap.phase}: ${fmtDuration(Math.abs(ap.remainingMs))} overdue</span>`
+        : ''
+
+      const deadlineRow = (overallLine || phaseLine)
+        ? `<div class="di-dl">${phaseLine}${phaseLine && overallLine ? '<span style="color:var(--dim)"> · </span>' : ''}${overallLine}</div>`
+        : ''
+
+      return `
     <div class="doc-item${d.id === selId ? " sel" : ""}" data-id="${d.id}">
       <div class="di-top"><span class="di-name">${esc(d.entity)}</span>${docBadge(d)}</div>
       <div class="di-sub">Contact: ${esc(d.contact)} · ${fmt(d.createdAt).split(",")[0]}</div>
@@ -726,8 +906,9 @@ function renderSidebar() {
         ${!isClosed(d) && !isComplete(d) ? `<span class="di-pct">${docsPct(d)}%</span>` : ""}
       </div>
       <div class="di-bot"><span class="di-stage">↳ ${lastLabel(d)}</span></div>
-    </div>`,
-    )
+      ${deadlineRow}
+    </div>`
+    })
     .join("");
   el.querySelectorAll(".doc-item").forEach((el) =>
     el.addEventListener("click", () => selDoc(el.dataset.id)),
@@ -911,7 +1092,28 @@ function countPathStages(doc) {
       <div class="det-head-row">
         <div>
           <div class="det-entity">${esc(doc.entity)}</div>
-          <div class="det-meta"><span class="det-meta-i">Created ${fmt(doc.createdAt)}</span></div>
+          <div class="det-meta">
+            <span class="det-meta-i">Created ${fmt(doc.createdAt)}</span>
+            ${(() => {
+              const dl = getDocDeadline(doc)
+              const ap = getActivePhaseDeadline(doc)
+              if (dl.status === 'complete' || dl.status === 'closed') return ''
+              const dlColor = dl.status === 'late' ? 'var(--red)' : dl.status === 'atrisk' ? 'var(--warn)' : 'var(--green)'
+              const apColor = ap?.status === 'late' ? 'var(--red)' : ap?.status === 'atrisk' ? 'var(--warn)' : 'var(--green)'
+              const docPart = dl.remainingMs >= 0
+                ? `Doc: <strong>${fmtDuration(dl.remainingMs)} left</strong>`
+                : `Doc: <strong>${fmtDuration(Math.abs(dl.remainingMs))} overdue</strong>`
+              const phasePart = ap
+                ? ap.remainingMs >= 0
+                  ? `${ap.phase}: <strong>${fmtDuration(ap.remainingMs)} left</strong>`
+                  : `${ap.phase}: <strong>${fmtDuration(Math.abs(ap.remainingMs))} overdue</strong>`
+                : ''
+              return `
+                <span class="det-meta-sep">·</span>
+                ${phasePart ? `<span class="det-meta-i" style="color:${apColor}">${phasePart}</span><span class="det-meta-sep">·</span>` : ''}
+                <span class="det-meta-i" style="color:${dlColor}">${docPart}</span>`
+            })()}
+          </div>
         </div>
       <button class="btn btn-ghost btn-sm" onclick="openSummary('${doc.id}')">⬡ Summary</button> 
       </div>
@@ -928,11 +1130,12 @@ function countPathStages(doc) {
         <div class="ic"><div class="ic-lbl">Progress</div><div class="ic-val">${isClosed(doc) ? '<span style="color:var(--muted)">inc</span>' : pct + "%"}</div></div>
       </div>
     </div>
-    <div class="det-body">
+<div class="det-body">
       <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>`;
 
+
   /* ── PHASE 1 ── */
-  html += `<div class="ph-hd">Phase 1 — Pre-Assessment & Receive Application</div>`;
+  html += `<div class="ph-hd">Phase 1 — Pre-Assessment & Receive Application${phaseDeadlineTag('Phase 1', doc)}</div>`;
   if (!pa) {
     html += `<div class="dec-box">
       <div class="dec-title">Pre-Assessment — record timestamp and result</div>
@@ -998,7 +1201,7 @@ function countPathStages(doc) {
   }
 
   /* ── PHASE 2 ── */
-  html += `<div class="ph-hd ${!p1aDone ? "locked" : ""}">Phase 2 — Record & Route (CDO II)</div>`;
+  html += `<div class="ph-hd ${!p1aDone ? "locked" : ""}">Phase 2 — Record & Route (CDO II)${phaseDeadlineTag('Phase 2', doc)}</div>`;
   html += `<div class="merge-banner ${p1aDone ? "open" : ""}"><span class="mb-ic">${p1aDone ? "🔓" : "🔒"}</span><span>${p1aDone ? "Engineer accepted — CDO II can now record and route." : "Waiting for Engineer to accept application."}</span></div>`;
   if (p1aDone) {
     html += `<div class="stage-box">
@@ -1009,7 +1212,7 @@ function countPathStages(doc) {
 
 /* ── PHASE 3 ── */
 const p3Locked = !p2Done
-html += `<div class="ph-hd ${p3Locked ? 'locked' : ''}">Phase 3 — Parallel Evaluation</div>`
+html += `<div class="ph-hd ${p3Locked ? 'locked' : ''}">Phase 3 — Parallel Evaluation${phaseDeadlineTag('Phase 3', doc)}</div>`
 if (!p3Locked) {
   function nodToggle(field, recvStamp) {
     const val = doc[field]
@@ -1092,7 +1295,7 @@ if (!p3Locked) {
  /* ── PHASE 4 ── */
 const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
 const p4Locked2 = !p4Unlocked;
-html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}</div>`;
+html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}${phaseDeadlineTag('Phase 4A', doc)}</div>`;
 if (!p4Locked2) {
   if (p3aDone) {
     html += `<div class="stage-box">
@@ -1132,7 +1335,7 @@ if (!p4Locked2) {
 }
   /* ── PHASE 5 ── */
   const p5Locked = !p4aDone;
-  html += `<div class="ph-hd ${p5Locked ? "locked" : ""}">Phase 5 — Certificate Decision (CDO II)</div>`;
+html += `<div class="ph-hd ${p5Locked ? "locked" : ""}">Phase 5 — Certificate Decision (CDO II)${phaseDeadlineTag('Phase 5', doc)}</div>`;
   if (!p5Locked) {
     if (!certDecSet) {
       html += `<div class="stage-box">
@@ -1170,7 +1373,7 @@ if (!p4Locked2) {
 
   /* ── PHASE 6 ── */
 const p6Locked = !p6aUnlocked && !p6bUnlocked
-html += `<div class="ph-hd ${p6Locked ? 'locked' : ''}">Phase 6 — CDO II</div>`
+html += `<div class="ph-hd ${p6Locked ? 'locked' : ''}">Phase 6 — CDO II${phaseDeadlineTag('Phase 6', doc)}</div>`
 if (p6aUnlocked) {
   html += `<div class="stage-box">
     <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? 'sb-status-on' : 'sb-status-off'}">${p6aDone ? '✓ Done' : 'In Progress'}</span></div>
@@ -1221,7 +1424,7 @@ if (p6aUnlocked) {
 
   /* ── PHASE 7 ── */
   const p7Locked2 = !p7Unlocked;
-  html += `<div class="ph-hd ${p7Locked2 ? "locked" : ""}">Phase 7 — Payment</div>`;
+html += `<div class="ph-hd ${p7Locked2 ? "locked" : ""}">Phase 7 — Payment</div>`;
   if (!p7Locked2) {
     html += `<div class="stage-box">
       <div class="stage-box-hd"><span class="sb-title">Phase 7 — Payment Stage (Client)</span><span class="${doc.stages["p7_payment"] ? "sb-status-on" : "sb-status-off"}">${doc.stages["p7_payment"] ? "✓ Paid" : "Awaiting Payment"}</span></div>
@@ -1231,7 +1434,8 @@ if (p6aUnlocked) {
 
   /* ── PHASE 8 ── */
   const p8Locked = !doc.stages["p7_payment"];
-  html += `<div class="ph-hd ${p8Locked ? "locked" : ""}">Phase 8 — Release Certificate</div>`;
+  html += `<div class="ph-hd ${p8Locked ? "locked" : ""}">Phase 8 — Release Certificate${phaseDeadlineTag('Phase 8', doc)}</div>`;
+
   if (!p8Locked) {
     html += `<div class="stage-box">
       <div class="stage-box-hd"><span class="sb-title">Phase 8 — Release & Scan (CDO II)</span><span class="${isComplete(doc) ? "sb-status-on" : "sb-status-off"}">${isComplete(doc) ? "✓ Complete" : "In Progress"}</span></div>
@@ -1368,7 +1572,22 @@ async function saveDoc() {
     setLoading(false);
   }
 }
-
+async function toggleDeadlineExtended(docId) {
+  const doc = docs.find((d) => d.id === docId)
+  if (!doc) return
+  setLoading(true, 'Updating deadline…')
+  try {
+    await updateDoc(docId, { deadlineExtended: !doc.deadlineExtended })
+    doc.deadlineExtended = !doc.deadlineExtended
+    renderDetail()
+    toast(doc.deadlineExtended ? 'Deadline extended to 40 working days.' : 'Deadline reset to 20 working days.')
+  } catch (e) {
+    console.error(e)
+    toast('Failed to update.', true)
+  } finally {
+    setLoading(false)
+  }
+}
 /* ══════════════════════════════════════════════
    PRE-ASSESSMENT
 ══════════════════════════════════════════════ */
@@ -2934,6 +3153,7 @@ Object.assign(window, {
   applyFont,
   openSettings,
   doExportMetrics,
+
   setDocsFilter: (v) => { docsFilter = v; renderDocsPage(); },
   setDocsSort: (asc, desc) => { docsSort = docsSort === asc ? desc : asc; renderDocsPage(); },
   setDocsSearch: (v) => { docsSearch = v; renderDocsRows(); },
