@@ -50,6 +50,7 @@ function docToRow(doc) {
     entity: doc.entity,
     contact: doc.contact,
     email: doc.email,
+    created_at: doc.createdAt,
     email_verified: doc.emailVerified,
     remarks: doc.remarks ?? "",
     preassess: doc.preassess ?? null,
