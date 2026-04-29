@@ -149,21 +149,27 @@ function cycleTheme() {
    FONTS
 ══════════════════════════════════════════════ */
 const FONTS = {
-  modern:    { body: "Helvetica, Arial, sans-serif",   heading: "Helvetica, Arial, sans-serif" },
-  classic:   { body: "'EB Garamond', Georgia, serif",  heading: "'EB Garamond', Georgia, serif" },
-  technical: { body: "'DM Mono', monospace",           heading: "'Fraunces', serif" },
+  modern: {
+    body: "Helvetica, Arial, sans-serif",
+    heading: "Helvetica, Arial, sans-serif",
+  },
+  classic: {
+    body: "'EB Garamond', Georgia, serif",
+    heading: "'EB Garamond', Georgia, serif",
+  },
+  technical: { body: "'DM Mono', monospace", heading: "'Fraunces', serif" },
 };
 
 const FONT_SIZES = [
-  { label: 'XS', px: '12px' },
-  { label: 'S',  px: '14px' },
-  { label: 'M',  px: '16px' },
-  { label: 'L',  px: '18px' },
-  { label: 'XL', px: '21px' },
+  { label: "XS", px: "12px" },
+  { label: "S", px: "14px" },
+  { label: "M", px: "16px" },
+  { label: "L", px: "18px" },
+  { label: "XL", px: "21px" },
 ];
 
 function getCookie(key) {
-  const m = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
+  const m = document.cookie.match(new RegExp("(?:^|; )" + key + "=([^;]*)"));
   return m ? m[1] : null;
 }
 
@@ -173,60 +179,57 @@ function setCookie(key, val) {
 
 function applyFont(name) {
   const f = FONTS[name] || FONTS.technical;
-  document.documentElement.style.setProperty('--font-body', f.body);
-  document.documentElement.style.setProperty('--font-heading', f.heading);
+  document.documentElement.style.setProperty("--font-body", f.body);
+  document.documentElement.style.setProperty("--font-heading", f.heading);
   document.body.style.fontFamily = f.body;
-  document.querySelectorAll('.font-opt').forEach(el =>
-    el.classList.toggle('on', el.id === 'font-' + name)
-  );
-  setCookie('font', name);
+  document
+    .querySelectorAll(".font-opt")
+    .forEach((el) => el.classList.toggle("on", el.id === "font-" + name));
+  setCookie("font", name);
 }
 
 function applyFontSize(val) {
   const idx = Math.max(0, Math.min(4, parseInt(val)));
   const scales = [0.82, 0.91, 1, 1.1, 1.22];
-  const labels = ['XS', 'S', 'M', 'L', 'XL'];
+  const labels = ["XS", "S", "M", "L", "XL"];
 
-  const onPin   = document.getElementById('pg-pin')?.classList.contains('active');
-  const onEmpty = document.querySelector('.empty-view')?.offsetParent !== null;
+  const onPin = document.getElementById("pg-pin")?.classList.contains("active");
+  const onEmpty = document.querySelector(".empty-view")?.offsetParent !== null;
 
-  document.body.style.zoom = (onPin || onEmpty) ? 1 : scales[idx];
+  document.body.style.zoom = onPin || onEmpty ? 1 : scales[idx];
 
-  const labelEl = document.getElementById('fsize-label');
+  const labelEl = document.getElementById("fsize-label");
   if (labelEl) labelEl.textContent = labels[idx];
 
-  const slider = document.getElementById('fsize-slider');
+  const slider = document.getElementById("fsize-slider");
   if (slider) {
     slider.value = idx;
     const pct = (idx / 4) * 100;
-    slider.style.background =
-      `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
+    slider.style.background = `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
   }
 
-  setCookie('fsize', idx);
+  setCookie("fsize", idx);
 }
 
 function loadAppearance() {
-  applyFont(getCookie('font') ?? 'technical');
-  applyFontSize(getCookie('fsize') ?? '2');
+  applyFont(getCookie("font") ?? "technical");
+  applyFontSize(getCookie("fsize") ?? "2");
 }
 
 function openSettings() {
-  const saved = parseInt(getCookie('fsize') ?? '2');
-  const slider = document.getElementById('fsize-slider');
-  const labelEl = document.getElementById('fsize-label');
- 
+  const saved = parseInt(getCookie("fsize") ?? "2");
+  const slider = document.getElementById("fsize-slider");
+  const labelEl = document.getElementById("fsize-label");
 
   if (slider) {
     slider.value = saved;
     const pct = (saved / 4) * 100;
-    slider.style.background =
-      `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
+    slider.style.background = `linear-gradient(to right, var(--red) ${pct}%, var(--b2) ${pct}%)`;
     slider.oninput = () => applyFontSize(slider.value);
   }
   if (labelEl) labelEl.textContent = FONT_SIZES[saved].label;
 
-  openOv('ov-settings');
+  openOv("ov-settings");
 }
 /* ══════════════════════════════════════════════
    STAGE DEFINITIONS
@@ -290,7 +293,11 @@ const PHASE3A = [
 ];
 const PHASE3B = [
   { key: "p3b_nod", label: "Notice of Deficiency Issued", hint: "" },
-  { key: "p3b_endorse", label: "Application and Nod endorsed to SID", hint: "" },
+  {
+    key: "p3b_endorse",
+    label: "Application and Nod endorsed to SID",
+    hint: "",
+  },
 ];
 const PHASE4A = [
   {
@@ -299,7 +306,6 @@ const PHASE4A = [
     hint: "CDO II",
   },
 
-  
   {
     key: "p4a_eng_briefer",
     label: "Received by Engineer — Briefer prep & Certificate drafting",
@@ -319,7 +325,11 @@ const PHASE4A = [
 ];
 
 const PHASE4B = [
-  { key: "p4b_cdo_accept", label: "Record Receipt of Documents", hint: "CDO II" },
+  {
+    key: "p4b_cdo_accept",
+    label: "Record Receipt of Documents",
+    hint: "CDO II",
+  },
 ];
 const PHASE5 = [
   {
@@ -537,10 +547,10 @@ function workMs(a, b) {
    INIT
 ══════════════════════════════════════════════ */
 async function initData() {
-  const session = await getSession()
+  const session = await getSession();
   if (!session) {
-    goTo("pin")
-    return
+    goTo("pin");
+    return;
   }
   setLoading(true, "Loading documents…");
   try {
@@ -593,23 +603,23 @@ function syncDots() {
 }
 async function checkPin() {
   try {
-    await signIn(pin)
-    $("pinErr").textContent = ""
-    setTimeout(() => goTo("tracker"), 500)
+    await signIn(pin);
+    $("pinErr").textContent = "";
+    setTimeout(() => goTo("tracker"), 500);
   } catch (e) {
     document
       .querySelectorAll(".pin-dot")
-      .forEach((d) => d.classList.add("shake"))
-    $("pinErr").textContent = "Incorrect PIN — try again."
+      .forEach((d) => d.classList.add("shake"));
+    $("pinErr").textContent = "Incorrect PIN — try again.";
     setTimeout(() => {
-      pin = ""
-      syncDots()
-    }, 700)
+      pin = "";
+      syncDots();
+    }, 700);
   }
 }
 
 async function doLock() {
-  await signOut()
+  await signOut();
   const sb = document.querySelector(".sidebar");
   if (sb) sb.classList.remove("open");
   const mp = document.querySelector(".main-panel");
@@ -651,7 +661,7 @@ function goTo(name) {
   const mn = $("mobileNav");
   if (mn) mn.style.display = name === "pin" ? "none" : "flex";
   if (name === "metrics") renderMetrics();
-if (name === "tracker") {
+  if (name === "tracker") {
     initData();
     if (window.innerWidth > 900 && !sidebarManuallyClosed) {
       openSidebar();
@@ -661,7 +671,7 @@ if (name === "tracker") {
   if (name === "simple") renderSimple();
 
   // defer so active class is applied before zoom check runs
-  setTimeout(() => applyFontSize(getCookie('fsize') ?? '2'), 0);
+  setTimeout(() => applyFontSize(getCookie("fsize") ?? "2"), 0);
 }
 
 /* ══════════════════════════════════════════════
@@ -671,9 +681,16 @@ function isComplete(doc) {
   return !!doc.stages["p8_scan"];
 }
 function isClosed(doc) {
-  const p1bClosed = doc.preassess === "incomplete" && !!doc.stages["p1b_return"];
-  const p4bClosed = (doc.nod_legal || doc.nod_tech || doc.nod_fin) && !!doc.p3b_notif_ts && !!doc.p3b_return_ts;
-  const p6bClosed = doc.certOutcome === "disapproved" && !!doc.p6b_notif_ts && !!doc.p6b_return_ts;
+  const p1bClosed =
+    doc.preassess === "incomplete" && !!doc.stages["p1b_return"];
+  const p4bClosed =
+    (doc.nod_legal || doc.nod_tech || doc.nod_fin) &&
+    !!doc.p3b_notif_ts &&
+    !!doc.p3b_return_ts;
+  const p6bClosed =
+    doc.certOutcome === "disapproved" &&
+    !!doc.p6b_notif_ts &&
+    !!doc.p6b_return_ts;
   return p1bClosed || p4bClosed || p6bClosed;
 }
 function docBadge(doc) {
@@ -818,26 +835,33 @@ function renderDetail() {
   const doc = docs.find((d) => d.id === selId);
   if (!doc) return;
 
-function countPathStages(doc) {
-  const pa = doc.preassess, path = [];
-  path.push(...PHASE1A);
-  if (pa === "incomplete") path.push(...PHASE1B);
-  else if (pa === "complete") {
-    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
-      // Path B — NOD → dead end
-      path.push(...PHASE3B, ...PHASE4B);
-    } else if (doc.p3decision === "compliant") {
-      // Path A — compliant → certificate
-      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
-      if (doc.certOutcome === "approved")
-        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-      else if (doc.certOutcome === "disapproved")
-        path.push(...PHASE5B, ...PHASE6B);
+  console.log("DOC STAGES:", doc.stages);
+  console.log("LEGAL BACK:", doc.stages["p3_legal_back"]);
+  console.log("TECH BACK:", doc.stages["p3_tech_back"]);
+  console.log("FIN BACK:", doc.stages["p3_fin_back"]);
+  console.log("P3 DECISION:", doc.p3decision);
+
+  function countPathStages(doc) {
+    const pa = doc.preassess,
+      path = [];
+    path.push(...PHASE1A);
+    if (pa === "incomplete") path.push(...PHASE1B);
+    else if (pa === "complete") {
+      path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
+      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
+        // Path B — NOD → dead end
+        path.push(...PHASE3B, ...PHASE4B);
+      } else if (doc.p3decision === "compliant") {
+        // Path A — compliant → certificate
+        path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
+        if (doc.certOutcome === "approved")
+          path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
+        else if (doc.certOutcome === "disapproved")
+          path.push(...PHASE5B, ...PHASE6B);
+      }
     }
+    return path;
   }
-  return path;
-}
   const pathStages = countPathStages(doc);
   const totalStampable = Math.max(pathStages.length, 1);
   const doneCount = pathStages.filter((s) => doc.stages[s.key]).length;
@@ -1007,66 +1031,67 @@ function countPathStages(doc) {
     </div>`;
   }
 
-/* ── PHASE 3 ── */
-const p3Locked = !p2Done
-html += `<div class="ph-hd ${p3Locked ? 'locked' : ''}">Phase 3 — Parallel Evaluation</div>`
-if (!p3Locked) {
-  function nodToggle(field, recvStamp) {
-    const val = doc[field]
-    if (doc.p3decision === 'compliant' && !val) return ''
-    const disabled = !recvStamp
-    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--s2);border-top:1px solid var(--b1)">
+  /* ── PHASE 3 ── */
+  const p3Locked = !p2Done;
+  html += `<div class="ph-hd ${p3Locked ? "locked" : ""}">Phase 3 — Parallel Evaluation</div>`;
+  if (!p3Locked) {
+    function nodToggle(field, recvStamp) {
+      const val = doc[field];
+
+      const disabled = !recvStamp;
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--s2);border-top:1px solid var(--b1)">
       <span style="font-size:10px;color:var(--dim);flex:1">Notice of Deficiency</span>
-      ${val
-        ? `<span style="font-size:10px;color:var(--red);font-weight:500">✓ NOD Issued</span>`
-        : disabled
-          ? `<span style="font-size:9px;color:var(--dim);font-style:italic">Available after Received from stamp</span>`
-          : `<button class="stmp" style="border-color:var(--red);color:var(--red);background:rgba(192,57,43,.06)" onclick="setNOD('${field}','${doc.id}')">Issue NOD</button>`
+      ${
+        val
+          ? `<span style="font-size:10px;color:var(--red);font-weight:500">✓ NOD Issued</span>`
+          : disabled
+            ? `<span style="font-size:9px;color:var(--dim);font-style:italic">Available after Received from stamp</span>`
+            : `<button class="stmp" style="border-color:var(--red);color:var(--red);background:rgba(192,57,43,.06)" onclick="setNOD('${field}','${doc.id}')">Issue NOD</button>`
       }
-    </div>`
-  }
-  html += `<div class="track-grid-3">
+    </div>`;
+    }
+    html += `<div class="track-grid-3">
     <div class="track">
-      <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone ? 'sb-status-on' : 'sb-status-off'}">${legalDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3_LEGAL, doc, 'p3_legal', false)}
-      ${nodToggle('nod_legal', doc.stages['p3_legal_back'])}
+      <div class="track-hd"><span class="track-title">Legal</span><span class="${legalDone ? "sb-status-on" : "sb-status-off"}">${legalDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE3_LEGAL, doc, "p3_legal", false)}
+      ${nodToggle("nod_legal", doc.stages["p3_legal_back"])}
     </div>
     <div class="track">
-      <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone ? 'sb-status-on' : 'sb-status-off'}">${techDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3_TECH, doc, 'p3_tech', false)}
-      ${nodToggle('nod_tech', doc.stages['p3_tech_back'])}
+      <div class="track-hd"><span class="track-title">Technical</span><span class="${techDone ? "sb-status-on" : "sb-status-off"}">${techDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE3_TECH, doc, "p3_tech", false)}
+      ${nodToggle("nod_tech", doc.stages["p3_tech_back"])}
     </div>
     <div class="track">
-      <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone ? 'sb-status-on' : 'sb-status-off'}">${finDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3_FIN, doc, 'p3_fin', false)}
-      ${nodToggle('nod_fin', doc.stages['p3_fin_back'])}
+      <div class="track-hd"><span class="track-title">Financial</span><span class="${finDone ? "sb-status-on" : "sb-status-off"}">${finDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE3_FIN, doc, "p3_fin", false)}
+      ${nodToggle("nod_fin", doc.stages["p3_fin_back"])}
     </div>
-  </div>`
+  </div>`;
 
-  if (anyNOD) {
-    const p3bAllRecvDone =
-      !!doc.stages['p3_legal_back'] &&
-      !!doc.stages['p3_tech_back'] &&
-      !!doc.stages['p3_fin_back']
-    html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`
-    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
-      <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? 'sb-status-warn' : 'sb-status-off'}">${p3bAllRecvDone ? 'Active' : 'Locked — awaiting all Received from'}</span></div>
-      ${buildRows(PHASE3B, doc, 'p3b', !p3bAllRecvDone)}
-    </div>`
-  }
+    if (anyNOD) {
+      const p3bAllRecvDone =
+        !!doc.stages["p3_legal_back"] &&
+        !!doc.stages["p3_tech_back"] &&
+        !!doc.stages["p3_fin_back"];
+      html += `<div class="merge-banner warn"><span class="mb-ic">⚠</span><span>NOD issued on at least one track — Phase 3B is pending. Complete all Received from stamps to unlock.</span></div>`;
+      html += `<div class="stage-box" style="border-color:rgba(201,107,90,.3)">
+      <div class="stage-box-hd"><span class="sb-title">Phase 3B — Deficiency Process</span><span class="${p3bAllRecvDone ? "sb-status-warn" : "sb-status-off"}">${p3bAllRecvDone ? "Active" : "Locked — awaiting all Received from"}</span></div>
+      ${buildRows(PHASE3B, doc, "p3b", !p3bAllRecvDone)}
+    </div>`;
+    }
 
-  if (allP3Done && !anyNOD && !p3DecisionSet) {
-    html += `<div class="merge-banner open"><span class="mb-ic">🔓</span><span>All Phase 3 tracks complete — no NOD issued. Confirm findings below.</span></div>`
-    html += `<div class="dec-box">
+    if (allP3Done && !anyNOD && !p3DecisionSet) {
+      html += `<div class="merge-banner open"><span class="mb-ic">🔓</span><span>All Phase 3 tracks complete — no NOD issued. Confirm findings below.</span></div>`;
+      html += `<div class="dec-box">
       <div class="dec-title">Findings Decision — all tracks compliant, confirm to proceed to Phase 3A</div>
       <div class="fg" style="margin-bottom:10px">
         <div class="fl">Date & Time of Merge <span class="req">*</span></div>
         <input type="datetime-local" id="p3-merge-dt" class="fi" value="${nowLocal()}" style="max-width:260px">
       </div>
       <button class="btn btn-primary2 btn-sm" onclick="confirmP3Merge('${doc.id}')">Confirm — No Findings → Proceed to Phase 3A</button>
-    </div>`
-  } else if (allP3Done && p3DecisionSet) {
-    html += `<div class="dec-box" style="border-color:rgba(126,184,154,.3);margin-bottom:14px">
+    </div>`;
+    } else if (allP3Done && p3DecisionSet) {
+      html += `<div class="dec-box" style="border-color:rgba(126,184,154,.3);margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div>
           <div class="dec-title" style="margin-bottom:4px">Phase 3 — Decision recorded</div>
@@ -1077,44 +1102,46 @@ if (!p3Locked) {
           <div style="font-size:15px;color:var(--text)">${fmt(doc.p3mergeTs)}</div>
         </div>
       </div>
-    </div>`
-  } else if (!allP3Done) {
-    html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Complete all three Phase 3 tracks to unlock the findings decision.</span></div>`
-  }
+    </div>`;
+    } else if (!allP3Done) {
+      html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Complete all three Phase 3 tracks to unlock the findings decision.</span></div>`;
+    }
 
-  if (onP3A) {
-    html += `<div class="stage-box">
-      <div class="stage-box-hd"><span class="sb-title">Phase 3A — Endorse to SID</span><span class="${p3aDone ? 'sb-status-on' : 'sb-status-off'}">${p3aDone ? '✓ Done' : 'In Progress'}</span></div>
-      ${buildRows(PHASE3A, doc, 'p3a', false)}
-    </div>`
+    if (onP3A) {
+      html += `<div class="stage-box">
+      <div class="stage-box-hd"><span class="sb-title">Phase 3A — Endorse to SID</span><span class="${p3aDone ? "sb-status-on" : "sb-status-off"}">${p3aDone ? "✓ Done" : "In Progress"}</span></div>
+      ${buildRows(PHASE3A, doc, "p3a", false)}
+    </div>`;
+    }
   }
-}
- /* ── PHASE 4 ── */
-const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
-const p4Locked2 = !p4Unlocked;
-html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}</div>`;
-if (!p4Locked2) {
-  if (p3aDone) {
-    html += `<div class="stage-box">
+  /* ── PHASE 4 ── */
+  const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
+  const p4Locked2 = !p4Unlocked;
+  html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}</div>`;
+  if (!p4Locked2) {
+    if (p3aDone) {
+      html += `<div class="stage-box">
       <div class="stage-box-hd"><span class="sb-title">Phase 4A — Briefer & Certificate</span><span class="${p4aDone ? "sb-status-on" : "sb-status-off"}">${p4aDone ? "✓ Done" : "In Progress"}</span></div>
       ${buildRows(PHASE4A, doc, "p4a", false)}
     </div>`;
-  }
-  if (p3bDone) {
-    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
+    }
+    if (p3bDone) {
+      html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
       <div class="stage-box-hd"><span class="sb-title">Phase 4B — Deficiency Follow-up</span><span class="${p4bDone ? "sb-status-on" : "sb-status-off"}">${p4bDone ? "✓ Done" : "In Progress"}</span></div>
       ${buildRows(PHASE4B, doc, "p4b", false)}
       <div class="ts-fields">
         <div class="ts-row">
           <span class="ts-row-lbl">Applicant Notified (P4B)</span>
           <div class="ts-row-val">
-            ${p4bDone
-              ? doc.email_sent_p3b_notify
-                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-                : !doc.emailVerified
-                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
-              : ""}
+            ${
+              p4bDone
+                ? doc.email_sent_p3b_notify
+                  ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                  : !doc.emailVerified
+                    ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                    : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p3b_notify','${doc.id}')">✉ Preview</button>`
+                : ""
+            }
             ${tsBtn("p3b_notif_ts", "Applicant Notified (P4B)", doc.id, !p4bDone)}
           </div>
         </div>
@@ -1124,12 +1151,12 @@ if (!p4Locked2) {
         </div>
       </div>
     </div>`;
-    if (doc.p3b_notif_ts && doc.p3b_return_ts)
-      html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`;
+      if (doc.p3b_notif_ts && doc.p3b_return_ts)
+        html += `<div class="closed-banner">⛔ Document closed — applicant notified ${fmt(doc.p3b_notif_ts)}, application returned ${fmt(doc.p3b_return_ts)}.</div>`;
+    }
+  } else if (p2Done) {
+    html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Phase 4 unlocks after Phase 3A or 3B completes.</span></div>`;
   }
-} else if (p2Done) {
-  html += `<div class="merge-banner"><span class="mb-ic">🔒</span><span>Phase 4 unlocks after Phase 3A or 3B completes.</span></div>`;
-}
   /* ── PHASE 5 ── */
   const p5Locked = !p4aDone;
   html += `<div class="ph-hd ${p5Locked ? "locked" : ""}">Phase 5 — Certificate Decision (CDO II)</div>`;
@@ -1169,55 +1196,59 @@ if (!p4Locked2) {
   }
 
   /* ── PHASE 6 ── */
-const p6Locked = !p6aUnlocked && !p6bUnlocked
-html += `<div class="ph-hd ${p6Locked ? 'locked' : ''}">Phase 6 — CDO II</div>`
-if (p6aUnlocked) {
-  html += `<div class="stage-box">
-    <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? 'sb-status-on' : 'sb-status-off'}">${p6aDone ? '✓ Done' : 'In Progress'}</span></div>
-    ${buildRows(PHASE6A, doc, 'p6a', false)}
+  const p6Locked = !p6aUnlocked && !p6bUnlocked;
+  html += `<div class="ph-hd ${p6Locked ? "locked" : ""}">Phase 6 — CDO II</div>`;
+  if (p6aUnlocked) {
+    html += `<div class="stage-box">
+    <div class="stage-box-hd"><span class="sb-title">Phase 6A — Approved</span><span class="${p6aDone ? "sb-status-on" : "sb-status-off"}">${p6aDone ? "✓ Done" : "In Progress"}</span></div>
+    ${buildRows(PHASE6A, doc, "p6a", false)}
     <div class="ts-fields">
       <div class="ts-row">
         <span class="ts-row-lbl">Notify Client — Approved & SOA Fees</span>
         <div class="ts-row-val">
-          ${p6aDone
-            ? doc.email_sent_p6a_notify
-              ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-              : !doc.emailVerified
-                ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`
-            : ''}
-          ${tsBtn('p6a_notif_ts', 'Client Notified — Approved & SOA', doc.id, !p6aDone)}
+          ${
+            p6aDone
+              ? doc.email_sent_p6a_notify
+                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                : !doc.emailVerified
+                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6a_notify','${doc.id}')">✉ Preview</button>`
+              : ""
+          }
+          ${tsBtn("p6a_notif_ts", "Client Notified — Approved & SOA", doc.id, !p6aDone)}
         </div>
       </div>
     </div>
-  </div>`
-} else if (p6bUnlocked) {
-  html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
+  </div>`;
+  } else if (p6bUnlocked) {
+    html += `<div class="stage-box" style="border-color:rgba(201,107,90,.25)">
     <div class="stage-box-hd"><span class="sb-title">Phase 6B — Disapproved</span><span class="sb-status-warn">Dead-end</span></div>
-    ${buildRows(PHASE6B, doc, 'p6b', false)}
+    ${buildRows(PHASE6B, doc, "p6b", false)}
     <div class="ts-fields">
       <div class="ts-row">
         <span class="ts-row-lbl">Notify Client — Disapproval</span>
         <div class="ts-row-val">
-          ${doc.stages['p6b_recv_odc']
-            ? doc.email_sent_p6b_notify
-              ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
-              : !doc.emailVerified
-                ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
-                : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>`
-            : ''}
-          ${tsBtn('p6b_notif_ts', 'Client Notified — Disapproval', doc.id, !doc.stages['p6b_recv_odc'])}
+          ${
+            doc.stages["p6b_recv_odc"]
+              ? doc.email_sent_p6b_notify
+                ? `<button class="btn btn-ghost btn-xs" disabled>✉ Email Sent</button>`
+                : !doc.emailVerified
+                  ? `<button class="btn btn-ghost btn-xs" disabled title="Email not verified">✉ Unverified</button>`
+                  : `<button class="btn btn-blue-out btn-xs" onclick="openEmailPrev('p6b_notify','${doc.id}')">✉ Preview</button>`
+              : ""
+          }
+          ${tsBtn("p6b_notif_ts", "Client Notified — Disapproval", doc.id, !doc.stages["p6b_recv_odc"])}
         </div>
       </div>
       <div class="ts-row">
         <span class="ts-row-lbl">Application Returned</span>
-        <div class="ts-row-val">${tsBtn('p6b_return_ts', 'Application Returned (6B)', doc.id, !doc.p6b_notif_ts)}</div>
+        <div class="ts-row-val">${tsBtn("p6b_return_ts", "Application Returned (6B)", doc.id, !doc.p6b_notif_ts)}</div>
       </div>
     </div>
-  </div>`
-  if (doc.p6b_notif_ts && doc.p6b_return_ts)
-    html += `<div class="closed-banner">⛔ Document closed — client notified ${fmt(doc.p6b_notif_ts)}, application returned ${fmt(doc.p6b_return_ts)}.</div>`
-}
+  </div>`;
+    if (doc.p6b_notif_ts && doc.p6b_return_ts)
+      html += `<div class="closed-banner">⛔ Document closed — client notified ${fmt(doc.p6b_notif_ts)}, application returned ${fmt(doc.p6b_return_ts)}.</div>`;
+  }
 
   /* ── PHASE 7 ── */
   const p7Locked2 = !p7Unlocked;
@@ -1271,15 +1302,15 @@ if (p6aUnlocked) {
         );
       });
     });
-    $("docDetail")
-      .querySelectorAll(".stmp[data-doc]")
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const { doc: dId, track, idx, bypass } = btn.dataset;
-          if (track === "cert_decision") openApprovalModal(dId);
-          else openStamp(dId, track, parseInt(idx), !!bypass);
-        });
+  $("docDetail")
+    .querySelectorAll(".stmp[data-doc]")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const { doc: dId, track, idx, bypass } = btn.dataset;
+        if (track === "cert_decision") openApprovalModal(dId);
+        else openStamp(dId, track, parseInt(idx), !!bypass);
       });
+    });
 }
 
 /* ══════════════════════════════════════════════
@@ -1499,7 +1530,9 @@ function openStamp(docId, track, idx, bypass = false) {
 
   $("sm-name").textContent = sd.label.replace(/&amp;/g, "&");
   $("sm-hint").textContent = sd.hint || "Set the date and time.";
-  $("sm-note").textContent = bypass ? "⚠ Bypass mode — select a backdated time." : "";
+  $("sm-note").textContent = bypass
+    ? "⚠ Bypass mode — select a backdated time."
+    : "";
   $("sm-passedby-grp").style.display = sd.passedBy ? "block" : "none";
   $("sm-sentby-grp").style.display = sd.sentBy ? "block" : "none";
   if (sd.passedBy) {
@@ -1514,7 +1547,7 @@ function openStamp(docId, track, idx, bypass = false) {
   }
 
   // Show/hide date picker depending on mode
-const dtGrp = $("sm-dt-grp");
+  const dtGrp = $("sm-dt-grp");
   if (dtGrp) dtGrp.style.display = bypass || !needsExtra ? "block" : "none";
 
   $("sm-dt").value = nowLocal();
@@ -1531,7 +1564,9 @@ const dtGrp = $("sm-dt-grp");
       if (s.key === sd.key) break;
       if (doc?.stages[s.key]?.stampedAt) prevTime = doc.stages[s.key].stampedAt;
     }
-    $("sm-dt").min = prevTime ? new Date(prevTime).toISOString().slice(0, 16) : "";
+    $("sm-dt").min = prevTime
+      ? new Date(prevTime).toISOString().slice(0, 16)
+      : "";
     $("sm-dt").max = "";
   } else {
     $("sm-dt").min = "";
@@ -1628,7 +1663,8 @@ async function doStamp() {
     if (minTime && new Date(dt) < minTime) {
       $("sm-dt").classList.add("err");
       $("sme-dt").classList.add("on");
-      $("sme-dt").textContent = `Date must be after ${fmt(minTime.toISOString())}.`;
+      $("sme-dt").textContent =
+        `Date must be after ${fmt(minTime.toISOString())}.`;
       ok = false;
     }
   }
@@ -1740,7 +1776,7 @@ async function sendEmail(to, subject, body) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${import.meta.env.VITE_API_SECRET}`
+      Authorization: `Bearer ${import.meta.env.VITE_API_SECRET}`,
     },
     body: JSON.stringify({ to, subject, body }),
   });
@@ -1762,26 +1798,33 @@ function openEmailPrev(type, docId) {
     email = doc?.email || "—";
   }
 
-  let title = "Email Preview", subj = "", body = "";
+  let title = "Email Preview",
+    subj = "",
+    body = "";
 
-if (type === "verify") {
-  const entity = $("f-entity") ? $("f-entity").value.trim() || "the applicant" : "the applicant";
-  const contact = $("f-contact") ? $("f-contact").value.trim() || entity : entity;
-  title = "Verification Email"; subj = "Document Tracker — Email Verification";
-  body = `Dear ${esc(contact)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
-} else if (type === "p6a_notify") {
-  title = "Notification — Approved &amp; SOA";
-  subj = "Document Tracker — Application Approved";
-  body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
-} else if (type === "p6b_notify") {
-  title = "Notification — Disapproval";
-  subj = "Document Tracker — Notice of Disapproval";
-  body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
-} else if (type === "p3b_notify") {
-  title = "Notification — Notice of Deficiency";
-  subj = "Document Tracker — Notice of Deficiency";
-  body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Thank you.`;
-}
+  if (type === "verify") {
+    const entity = $("f-entity")
+      ? $("f-entity").value.trim() || "the applicant"
+      : "the applicant";
+    const contact = $("f-contact")
+      ? $("f-contact").value.trim() || entity
+      : entity;
+    title = "Verification Email";
+    subj = "Document Tracker — Email Verification";
+    body = `Dear ${esc(contact)},<br><br>This is a verification email from our Document Tracker system. Please confirm your email address is associated with your application.<br><br>Thank you.`;
+  } else if (type === "p6a_notify") {
+    title = "Notification — Approved &amp; SOA";
+    subj = "Document Tracker — Application Approved";
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
+  } else if (type === "p6b_notify") {
+    title = "Notification — Disapproval";
+    subj = "Document Tracker — Notice of Disapproval";
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
+  } else if (type === "p3b_notify") {
+    title = "Notification — Notice of Deficiency";
+    subj = "Document Tracker — Notice of Deficiency";
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We wish to inform you that upon evaluation of your application, a Notice of Deficiency has been issued.<br><br>Your application has been found to have deficiencies that need to be addressed before processing can continue. Please coordinate with our office regarding the necessary requirements.<br><br>Thank you.`;
+  }
 
   $("ep-title").textContent = title;
   $("ep-to").textContent = email;
@@ -1994,18 +2037,34 @@ function openSummary(docId) {
       </div>
       ${totalWall > 0 ? `<div class="sum-total-row"><span style="color:var(--muted);font-size:12px">Total</span><span style="color:var(--red);font-size:12px;font-weight:500">${durStr(totalWall)} elapsed · ${durStr(totalWork)} working</span></div>` : ""}
     </div>`;
- const _sumExportBtn = document.getElementById("sum-export-btn");
+  const _sumExportBtn = document.getElementById("sum-export-btn");
   if (_sumExportBtn) {
     // capture current closure vars for the export
     const _evSnap = [...events];
-    const _twSnap = totalWall, _tkSnap = totalWork, _mwSnap = maxW, _bnSnap = bnLabel;
+    const _twSnap = totalWall,
+      _tkSnap = totalWork,
+      _mwSnap = maxW,
+      _bnSnap = bnLabel;
     _sumExportBtn.onclick = async () => {
-      _sumExportBtn.textContent = "Exporting…"; _sumExportBtn.disabled = true;
+      _sumExportBtn.textContent = "Exporting…";
+      _sumExportBtn.disabled = true;
       try {
-        await exportSummaryPDF({ doc, events: _evSnap, totalWall: _twSnap, totalWork: _tkSnap, maxW: _mwSnap, bnLabel: _bnSnap });
+        await exportSummaryPDF({
+          doc,
+          events: _evSnap,
+          totalWall: _twSnap,
+          totalWork: _tkSnap,
+          maxW: _mwSnap,
+          bnLabel: _bnSnap,
+        });
         toast("Summary PDF exported.");
-      } catch (e) { console.error(e); toast("Failed to export PDF.", true); }
-      finally { _sumExportBtn.textContent = "🖶"; _sumExportBtn.disabled = false; }
+      } catch (e) {
+        console.error(e);
+        toast("Failed to export PDF.", true);
+      } finally {
+        _sumExportBtn.textContent = "🖶";
+        _sumExportBtn.disabled = false;
+      }
     };
   }
   openOv("ov-summary");
@@ -2042,10 +2101,12 @@ function renderSimple() {
   const allP3Done = legalDone && techDone && finDone;
   const anyNOD = doc.nod_legal || doc.nod_tech || doc.nod_fin;
   const p3DecisionSet = !!doc.p3decision;
-  const inPhase3 = p2Done && (!allP3Done || (allP3Done && !p3DecisionSet && !anyNOD));
+  const inPhase3 =
+    p2Done && (!allP3Done || (allP3Done && !p3DecisionSet && !anyNOD));
 
-const pathStages = (() => {
-    const pa = doc.preassess, path = [];
+  const pathStages = (() => {
+    const pa = doc.preassess,
+      path = [];
     path.push(...PHASE1A);
     if (pa === "incomplete") path.push(...PHASE1B);
     else if (pa === "complete") {
@@ -2082,7 +2143,7 @@ const pathStages = (() => {
     if (PHASE3_FIN.find((s) => s.key === key)) return "Phase 3 — Financial";
     if (PHASE3A.find((s) => s.key === key)) return "Phase 3A — Endorse";
     if (PHASE3B.find((s) => s.key === key)) return "Phase 3B — Deficiency";
-   if (PHASE4A.find((s) => s.key === key)) return "Phase 4A — Briefer";
+    if (PHASE4A.find((s) => s.key === key)) return "Phase 4A — Briefer";
     if (PHASE4B.find((s) => s.key === key)) return "Phase 4B — Deficiency";
     if (PHASE5.find((s) => s.key === key)) return "Phase 5 — Decision";
     if (PHASE5A.find((s) => s.key === key)) return "Phase 5A — SOA";
@@ -2181,8 +2242,14 @@ const pathStages = (() => {
     const p3bDone = anyNOD && PHASE3B.every((s) => doc.stages[s.key]);
     const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
     const certDecSet = !!doc.certOutcome;
-    const p5aDone = certDecSet && doc.certOutcome === "approved" && PHASE5A.every((s) => doc.stages[s.key]);
-    const p5bDone = certDecSet && doc.certOutcome === "disapproved" && PHASE5B.every((s) => doc.stages[s.key]);
+    const p5aDone =
+      certDecSet &&
+      doc.certOutcome === "approved" &&
+      PHASE5A.every((s) => doc.stages[s.key]);
+    const p5bDone =
+      certDecSet &&
+      doc.certOutcome === "disapproved" &&
+      PHASE5B.every((s) => doc.stages[s.key]);
     const p6aDone = p5aDone && PHASE6A.every((s) => doc.stages[s.key]);
     const p6bDone = p5bDone && PHASE6B.every((s) => doc.stages[s.key]);
     if (p3bDone && !p4bDone) {
@@ -2404,16 +2471,23 @@ function renderMetrics() {
     </div>`;
 }
 
-
 async function doExportMetrics() {
   const btn = $("metrics-export-btn");
-  if (btn) { btn.textContent = "Exporting…"; btn.disabled = true; }
+  if (btn) {
+    btn.textContent = "Exporting…";
+    btn.disabled = true;
+  }
   try {
     await exportMetricsPDF({ docs, ALL_STAGES, isComplete, isClosed });
     toast("Metrics PDF exported.");
-  } catch (e) { console.error(e); toast("Failed to export PDF.", true); }
-  finally {
-    if (btn) { btn.textContent = "⬇ Export PDF"; btn.disabled = false; }
+  } catch (e) {
+    console.error(e);
+    toast("Failed to export PDF.", true);
+  } finally {
+    if (btn) {
+      btn.textContent = "⬇ Export PDF";
+      btn.disabled = false;
+    }
   }
 }
 /* ══════════════════════════════════════════════
@@ -2526,29 +2600,39 @@ function renderDocsRows() {
     list = list.filter((d) => {
       if (docsFilter === "complete") return isComplete(d);
       if (docsFilter === "closed") return isClosed(d);
-      if (docsFilter === "pending") return !d.preassess && !isComplete(d) && !isClosed(d);
-      if (docsFilter === "inprog") return d.preassess && !isComplete(d) && !isClosed(d);
+      if (docsFilter === "pending")
+        return !d.preassess && !isComplete(d) && !isClosed(d);
+      if (docsFilter === "inprog")
+        return d.preassess && !isComplete(d) && !isClosed(d);
       return true;
     });
   }
   if (docsSearch.trim()) {
     const q = docsSearch.trim().toLowerCase();
-    list = list.filter((d) =>
-      d.entity.toLowerCase().includes(q) ||
-      d.contact.toLowerCase().includes(q) ||
-      d.email.toLowerCase().includes(q) ||
-      (d.remarks || "").toLowerCase().includes(q),
+    list = list.filter(
+      (d) =>
+        d.entity.toLowerCase().includes(q) ||
+        d.contact.toLowerCase().includes(q) ||
+        d.email.toLowerCase().includes(q) ||
+        (d.remarks || "").toLowerCase().includes(q),
     );
   }
   list.sort((a, b) => {
     switch (docsSort) {
-      case "created_desc": return new Date(b.createdAt) - new Date(a.createdAt);
-      case "created_asc":  return new Date(a.createdAt) - new Date(b.createdAt);
-      case "entity_asc":   return a.entity.localeCompare(b.entity);
-      case "entity_desc":  return b.entity.localeCompare(a.entity);
-      case "progress_desc": return docsPct(b) - docsPct(a);
-      case "progress_asc":  return docsPct(a) - docsPct(b);
-      default: return 0;
+      case "created_desc":
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      case "created_asc":
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      case "entity_asc":
+        return a.entity.localeCompare(b.entity);
+      case "entity_desc":
+        return b.entity.localeCompare(a.entity);
+      case "progress_desc":
+        return docsPct(b) - docsPct(a);
+      case "progress_asc":
+        return docsPct(a) - docsPct(b);
+      default:
+        return 0;
     }
   });
 
@@ -2559,18 +2643,28 @@ function renderDocsRows() {
   if (countEl) countEl.textContent = `${list.length} of ${docs.length}`;
   if (clearBtn) clearBtn.style.display = docsSearch ? "" : "none";
 
-  if (!tbody) { renderDocsPage(); return; } // fallback if full page not rendered yet
+  if (!tbody) {
+    renderDocsPage();
+    return;
+  } // fallback if full page not rendered yet
 
   tbody.innerHTML = list.length
-    ? list.map((d) => {
-        const pct = docsPct(d);
-        const { txt, cls } = docsStatusInfo(d);
-        const phase = docsCurrentPhase(d);
-        const barClr = isComplete(d) ? "var(--green)" : isClosed(d) ? "var(--red)" : "var(--blue)";
-        const created = new Date(d.createdAt).toLocaleDateString("en-PH", {
-          year: "numeric", month: "short", day: "numeric",
-        });
-        return `<div class="dsp-row">
+    ? list
+        .map((d) => {
+          const pct = docsPct(d);
+          const { txt, cls } = docsStatusInfo(d);
+          const phase = docsCurrentPhase(d);
+          const barClr = isComplete(d)
+            ? "var(--green)"
+            : isClosed(d)
+              ? "var(--red)"
+              : "var(--blue)";
+          const created = new Date(d.createdAt).toLocaleDateString("en-PH", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+          return `<div class="dsp-row">
       <div class="dsp-td dsp-td-entity"><div class="dsp-entity">${esc(d.entity)}</div><div class="dsp-sub">${esc(d.contact)} · ${esc(d.email)}</div></div>
       <div class="dsp-td"><span class="dsp-status ${cls}">${txt}</span></div>
       <div class="dsp-td dsp-td-prog">
@@ -2591,7 +2685,8 @@ function renderDocsRows() {
         </button>
       </div>
     </div>`;
-      }).join("")
+        })
+        .join("")
     : `<div class="dsp-empty"><div class="dsp-empty-ic">⬡</div><div>${docsSearch || docsFilter !== "all" ? "No documents match." : "No documents yet."}</div></div>`;
 }
 
@@ -2889,12 +2984,18 @@ async function markEmailVerified(docId) {
   }
 }
 
-
 /* ══════════════════════════════════════════════
    EXPOSE GLOBALS (called from inline HTML onclick)
 ══════════════════════════════════════════════ */
 Object.assign(window, {
-  selectSimpleDoc: (id) => { if (id) selDoc(id); else { selId = null; renderSidebar(); } renderSimple(); },
+  selectSimpleDoc: (id) => {
+    if (id) selDoc(id);
+    else {
+      selId = null;
+      renderSidebar();
+    }
+    renderSimple();
+  },
   applyTheme,
   cycleTheme,
   goTo,
@@ -2928,15 +3029,24 @@ Object.assign(window, {
   confirmSimpleP3Merge,
   confirmSimpleP3B,
   renderDocsPage,
-  closeOv, 
+  closeOv,
   openOv,
   markEmailVerified,
   applyFont,
   openSettings,
   doExportMetrics,
-  setDocsFilter: (v) => { docsFilter = v; renderDocsPage(); },
-  setDocsSort: (asc, desc) => { docsSort = docsSort === asc ? desc : asc; renderDocsPage(); },
-  setDocsSearch: (v) => { docsSearch = v; renderDocsRows(); },
+  setDocsFilter: (v) => {
+    docsFilter = v;
+    renderDocsPage();
+  },
+  setDocsSort: (asc, desc) => {
+    docsSort = docsSort === asc ? desc : asc;
+    renderDocsPage();
+  },
+  setDocsSearch: (v) => {
+    docsSearch = v;
+    renderDocsRows();
+  },
 });
 
 /* ══════════════════════════════════════════════
