@@ -449,180 +449,188 @@ const TRACK_MAP = {
 /* ══════════════════════════════════════════════
    PHASE TIMES (working milliseconds)
 ══════════════════════════════════════════════ */
-const WD = 8 * 3600000; // 1 working day in ms
+const WD = 11 * 3600000; // 1 working day = 11 hours (Mon–Thu, 08:00–19:00) // 1 working day in ms
 const WH = 3600000; // 1 working hour in ms
 
-const PHASE_TIMES = {
-  p1: 1 * WD, // 1 day — pre-assessment
-  p2: 1 * WD, // 1 day — record & route
-  p3: 7 * WD, // 7 days — parallel evaluation
-  p4a: (3 + 1 + 1) * WD + 4 * WH, // 3d briefer + 1d chief + 1d director + 4h CDO
-  p4a_odc: 2 * WD, // 1d deputy + 1d commissioner
-  p5: 2 * WH, // 2 hours — record receipt
-  p5a: (3 + 1 + 1) * WH, // 3h + 1h + 1h SOA
-  p5b: (4 + 4 + 4) * WH, // 4h + 4h + 4h disapproval
-  p6: 2 * WH, // 2 hours — notify applicant
-  p8: 2 * WH + 40 * 60000, // 2h release + 40min scan
-  total: 20 * WD, // 20 working days full lifecycle
-};
+const WM = 60000;
 
 /* ══════════════════════════════════════════════
-   DEADLINE CALCULATORS
+   PHASE DEFINITIONS
 ══════════════════════════════════════════════ */
+function getPhaseInfo(doc) {
+  const s = doc.stages;
 
-function addWorkingMs(fromIso, ms) {
-  // Returns a Date that is `ms` working milliseconds after fromIso
-  let remaining = ms;
-  let cur = new Date(fromIso);
-  while (remaining > 0) {
-    const day = cur.getDay();
-    if (day >= 1 && day <= 5) {
-      const ws = new Date(cur);
-      ws.setHours(8, 0, 0, 0);
-      const we = new Date(cur);
-      we.setHours(17, 0, 0, 0);
-      const start = cur < ws ? ws : cur;
-      const avail = we - start;
-      if (avail <= 0) {
-        cur = new Date(cur);
-        cur.setDate(cur.getDate() + 1);
-        cur.setHours(8, 0, 0, 0);
-        continue;
-      }
-      if (remaining <= avail) {
-        return new Date(start.getTime() + remaining);
-      }
-      remaining -= avail;
-    }
-    cur = new Date(cur);
-    cur.setDate(cur.getDate() + 1);
-    cur.setHours(8, 0, 0, 0);
-  }
-  return cur;
+  // resolve start stamps
+  const p1Start  = doc.createdAt;
+  const p2Start  = s["p2_cdo_scan"]?.stampedAt;
+  const p3Start  = [
+    s["p3_legal_recv"]?.stampedAt,
+    s["p3_tech_recv"]?.stampedAt,
+    s["p3_fin_recv"]?.stampedAt,
+  ].filter(Boolean).sort().at(-1); // last of the three
+  const p4Start  = s["p4a_cdo_accept"]?.stampedAt || s["p4b_cdo_accept"]?.stampedAt;
+  const p5Start  = s["p5a_eng_soa"]?.stampedAt    || s["p5b_chief_nod"]?.stampedAt;
+  const p6Start  = s["p6a_recv_dir"]?.stampedAt   || s["p6b_recv_odc"]?.stampedAt;
+  const p7Start  = s["p7_payment"]?.stampedAt;
+  const p8Start  = s["p8_recv_client"]?.stampedAt;
+
+  // resolve end stamps
+  const p1End    = p2Start;
+  const p2End    = p3Start;
+  const p3End    = p4Start;
+  const p4End    = p5Start;
+  const p5End    = p6Start;
+  const p6End    = doc.p6a_notif_ts || doc.p6b_notif_ts;
+  const p7End    = p8Start;
+  const p8End    = s["p8_scan"]?.stampedAt;
+
+  // resolve budgets
+  const anyNOD   = doc.nod_legal || doc.nod_tech || doc.nod_fin;
+  const approved = doc.certOutcome === "approved";
+
+  const p4Budget = anyNOD
+    ? 4 * WH
+    : 7 * WD + 8 * WH;
+  const p5Budget = approved
+    ? 7 * WH
+    : 14 * WH;
+
+  return [
+    { key: "p1", label: "Phase 1", start: p1Start, end: p1End, budget: 1 * WD },
+    { key: "p2", label: "Phase 2", start: p2Start, end: p2End, budget: 1 * WD },
+    { key: "p3", label: "Phase 3", start: p3Start, end: p3End, budget: 7 * WD },
+    { key: "p4", label: "Phase 4", start: p4Start, end: p4End, budget: p4Budget },
+    { key: "p5", label: "Phase 5", start: p5Start, end: p5End, budget: p5Budget },
+    { key: "p6", label: "Phase 6", start: p6Start, end: p6End, budget: 2 * WH },
+    { key: "p7", label: "Phase 7", start: p7Start, end: p7End, budget: 20 * WM },
+    { key: "p8", label: "Phase 8", start: p8Start, end: p8End, budget: 2 * WH + 40 * WM },
+  ];
 }
 
-function deadlineStatus(usedMs, allowedMs) {
-  if (usedMs >= allowedMs) return "late";
-  if (usedMs >= allowedMs * 0.8) return "atrisk";
+/* ══════════════════════════════════════════════
+   PHASE TIMER HELPERS
+══════════════════════════════════════════════ */
+function phaseStatus(usedMs, budget) {
+  if (usedMs >= budget) return "late";
+  if (usedMs >= budget * 0.8) return "atrisk";
   return "ontime";
 }
 
+// For a completed phase: returns { usedMs, overMs, label }
+// e.g. "24h used" or "25h used — 1h overdue"
+function completedPhaseLabel(startIso, endIso, budget) {
+  const usedMs  = workMs(startIso, endIso);
+  const overMs  = usedMs - budget;
+  const usedStr = fmtDuration(usedMs);
+  if (overMs > 0)
+    return `${usedStr} used — ${fmtDuration(overMs)} overdue`;
+  return `${usedStr} used`;
+}
+
+// For the active phase: returns { label, status } with live countdown
+function activePhaseLabel(startIso, budget) {
+  const now     = new Date().toISOString();
+  const usedMs  = workMs(startIso, now);
+  const overMs  = usedMs - budget;
+  const status  = phaseStatus(usedMs, budget);
+  if (overMs > 0)
+    return { label: `${fmtDuration(overMs)} overdue`, status };
+  return { label: `${fmtDuration(budget - usedMs)} left`, status };
+}
+
+/* ══════════════════════════════════════════════
+   PUBLIC TIMER API  (replaces old functions)
+══════════════════════════════════════════════ */
+
+// Returns info for every phase — active, completed, and not-yet-started
+function getAllPhaseTimers(doc) {
+  const phases = getPhaseInfo(doc);
+  return phases.map((p) => {
+    if (!p.start) return { ...p, state: "pending" };
+
+    if (p.end) {
+      // completed
+      const usedMs = workMs(p.start, p.end);
+      const overMs = Math.max(0, usedMs - p.budget);
+      return {
+        ...p,
+        state:   "done",
+        usedMs,
+        overMs,
+        label:   completedPhaseLabel(p.start, p.end, p.budget),
+        status:  phaseStatus(usedMs, p.budget),
+      };
+    }
+
+    // active
+    const { label, status } = activePhaseLabel(p.start, p.budget);
+    const now    = new Date().toISOString();
+    const usedMs = workMs(p.start, now);
+    return {
+      ...p,
+      state:  "active",
+      usedMs,
+      label,
+      status,
+    };
+  });
+}
+
+// Returns only the currently active phase timer (used by sidebar + header tags)
+function getActivePhaseDeadline(doc) {
+  if (isComplete(doc) || isClosed(doc)) return null;
+  const timers = getAllPhaseTimers(doc);
+ const active =
+  timers.find((t) => t.state === "active") ||
+  timers.find((t) => t.start); // first started phase
+  if (!active) return null;
+
+  const now        = new Date().toISOString();
+  const usedMs     = workMs(active.start, now);
+  const remainingMs = active.budget - usedMs;
+  const status     = phaseStatus(usedMs, active.budget);
+
+return {
+  phase: active.label.startsWith("Phase")
+    ? active.label
+    : active.key.replace("p", "Phase "),
+  startTs: active.start,
+  allowedMs: active.budget,
+  usedMs,
+  remainingMs,
+  status,
+};
+}
+
+// Keeps the old overall doc deadline (sidebar "Doc: X left")
 function getDocDeadline(doc) {
   if (isComplete(doc))
     return { status: "complete", remainingMs: 0, deadlineTs: null };
   if (isClosed(doc))
     return { status: "closed", remainingMs: 0, deadlineTs: null };
 
-  const allowed = doc.deadlineExtended
-    ? PHASE_TIMES.total * 2
-    : PHASE_TIMES.total;
-  const deadlineTs = addWorkingMs(doc.createdAt, allowed);
-  const usedMs = workMs(doc.createdAt, new Date().toISOString());
-  const remainingMs = allowed - usedMs;
-  const status = deadlineStatus(usedMs, allowed);
 
-  return { status, remainingMs, deadlineTs, usedMs, allowed };
-}
-
-function getActivePhaseDeadline(doc) {
-  // Returns the current active phase deadline info, or null if none
-  if (isComplete(doc) || isClosed(doc)) return null;
-
+  const totalBudget = 20 * WD;
   const now = new Date().toISOString();
+  const usedMs = workMs(doc.createdAt, now);
+  const remainingMs = totalBudget - usedMs;
+  const status = phaseStatus(usedMs, totalBudget);
 
-  // Determine active phase and its start time + allowed time
-  const p1aDone = !!doc.stages["p1a_eng_accept"];
-  const p2Done = PHASE2.every((s) => doc.stages[s.key]);
-  const legalDone = PHASE3_LEGAL.every((s) => doc.stages[s.key]);
-  const techDone = PHASE3_TECH.every((s) => doc.stages[s.key]);
-  const finDone = PHASE3_FIN.every((s) => doc.stages[s.key]);
-  const allP3Done = legalDone && techDone && finDone;
-  const anyNOD = doc.nod_legal || doc.nod_tech || doc.nod_fin;
-  const p3DecisionSet = !!doc.p3decision;
-  const p3aDone =
-    allP3Done &&
-    p3DecisionSet &&
-    doc.p3decision === "compliant" &&
-    PHASE3A.every((s) => doc.stages[s.key]);
-  const p3bDone =
-    allP3Done && anyNOD && PHASE3B.every((s) => doc.stages[s.key]);
-  const p4Unlocked = p3aDone || p3bDone;
-  const p4aDone = p4Unlocked && PHASE4A.every((s) => doc.stages[s.key]);
-  const certDecSet = !!doc.certOutcome;
-  const p5aDone =
-    certDecSet &&
-    doc.certOutcome === "approved" &&
-    PHASE5A.every((s) => doc.stages[s.key]);
-  const p5bDone =
-    certDecSet &&
-    doc.certOutcome === "disapproved" &&
-    PHASE5B.every((s) => doc.stages[s.key]);
-  const p6aDone = p5aDone && PHASE6A.every((s) => doc.stages[s.key]);
-
-  let phase = null,
-    startTs = null,
-    allowedMs = null;
-
-  if (!doc.preassess) {
-    phase = "Phase 1";
-    startTs = doc.createdAt;
-    allowedMs = PHASE_TIMES.p1;
-  } else if (!p1aDone) {
-    phase = "Phase 1";
-    startTs = doc.paTs || doc.createdAt;
-    allowedMs = PHASE_TIMES.p1;
-  } else if (!p2Done) {
-    phase = "Phase 2";
-    startTs = doc.stages["p1a_eng_accept"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p2;
-  } else if (!allP3Done || (!p3DecisionSet && !anyNOD)) {
-    phase = "Phase 3";
-    startTs = doc.stages["p2_cdo_route"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p3;
-  } else if (p4Unlocked && !p4aDone) {
-    phase = "Phase 4A";
-    startTs = doc.stages["p4a_cdo_accept"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p4a + PHASE_TIMES.p4a_odc;
-  } else if (p4aDone && !certDecSet) {
-    phase = "Phase 5";
-    startTs = doc.stages["p4a_odc"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p5;
-  } else if (certDecSet && doc.certOutcome === "approved" && !p5aDone) {
-    phase = "Phase 5A";
-    startTs = doc.stages["p5_receipt"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p5a;
-  } else if (certDecSet && doc.certOutcome === "disapproved" && !p5bDone) {
-    phase = "Phase 5B";
-    startTs = doc.stages["p5_receipt"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p5b;
-  } else if ((p5aDone || p5bDone) && !p6aDone && !doc.p6b_return_ts) {
-    phase = "Phase 6";
-    startTs =
-      doc.stages["p5a_dir_soa"]?.stampedAt ||
-      doc.stages["p5b_odc_issue"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p6;
-  } else if (p6aDone && doc.p6a_notif_ts && !isComplete(doc)) {
-    phase = "Phase 8";
-    startTs = doc.stages["p8_recv_client"]?.stampedAt;
-    allowedMs = PHASE_TIMES.p8;
-  }
-
-  if (!phase || !startTs || !allowedMs) return null;
-
-  const usedMs = workMs(startTs, now);
-  const status = deadlineStatus(usedMs, allowedMs);
-  const remainingMs = allowedMs - usedMs;
-
-  return { phase, startTs, allowedMs, usedMs, remainingMs, status };
+  return { status, remainingMs, usedMs, allowed: totalBudget };
 }
 
+function deadlineStatus(usedMs, allowedMs) {
+  return phaseStatus(usedMs, allowedMs);
+}
 function fmtDuration(ms) {
   if (ms <= 0) return "0m";
   const totalMin = Math.round(Math.abs(ms) / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  const d = Math.floor(h / 8);
-  const rh = h % 8;
+const WORK_HOURS_PER_DAY = 11;
+
+const d = Math.floor(h / WORK_HOURS_PER_DAY);
+const rh = h % WORK_HOURS_PER_DAY;
   if (d > 0 && rh === 0) return `${d}d`;
   if (d > 0) return `${d}d ${rh}h`;
   if (h > 0 && m === 0) return `${h}h`;
@@ -720,20 +728,16 @@ function toast(msg, err = false) {
 
 function workMs(a, b) {
   if (!a || !b) return 0;
-  let s = new Date(a),
-    e = new Date(b),
-    ms = 0;
+  let s = new Date(a), e = new Date(b), ms = 0;
   if (e <= s) return 0;
   let c = new Date(s);
   while (c < e) {
     const d = c.getDay();
-    if (d >= 1 && d <= 5) {
-      const ws = new Date(c);
-      ws.setHours(8, 0, 0, 0);
-      const we = new Date(c);
-      we.setHours(17, 0, 0, 0);
-      const ss = c < ws ? ws : c,
-        se = e < we ? e : we;
+    if (d >= 1 && d <= 4) {
+      const ws = new Date(c); ws.setHours(8,  0, 0, 0);
+      const we = new Date(c); we.setHours(19, 0, 0, 0);
+      const ss = c < ws ? ws : c;
+      const se = e < we ? e : we;
       if (se > ss) ms += se - ss;
     }
     c = new Date(c);
@@ -742,7 +746,6 @@ function workMs(a, b) {
   }
   return ms;
 }
-
 /* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
@@ -917,80 +920,106 @@ function lastLabel(doc) {
 /* ══════════════════════════════════════════════
    SIDEBAR
 ══════════════════════════════════════════════ */
+
+let sbFilter = "inprog";
+let sbSort = "urgency";
+
+
 function renderSidebar() {
   const q = $("sbSearch").value.trim().toLowerCase();
-  const list = q
-    ? docs.filter((d) => d.entity.toLowerCase().includes(q))
-    : docs;
+
+  let list = docs.filter((d) => {
+    if (sbFilter === "inprog") return !isComplete(d) && !isClosed(d);
+    if (sbFilter === "complete") return isComplete(d);
+    if (sbFilter === "closed") return isClosed(d);
+    return true;
+  });
+
+  if (q) list = list.filter((d) => d.entity.toLowerCase().includes(q));
+
+  if (sbSort === "urgency") {
+    list.sort((a, b) => {
+      const dlA = getDocDeadline(a);
+      const dlB = getDocDeadline(b);
+      const msA = dlA.remainingMs ?? Infinity;
+      const msB = dlB.remainingMs ?? Infinity;
+      return msA - msB;
+    });
+  } else {
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
   $("docCount").textContent = docs.length;
+
+  const filterBar = `
+    <div class="sb-filter-row">
+      <button class="sb-f-btn${sbFilter === "inprog" ? " on" : ""}" onclick="setSbFilter('inprog')">Active</button>
+      <button class="sb-f-btn${sbFilter === "all" ? " on" : ""}" onclick="setSbFilter('all')">All</button>
+      <button class="sb-f-btn${sbFilter === "complete" ? " on" : ""}" onclick="setSbFilter('complete')">Complete</button>
+      <button class="sb-f-btn${sbFilter === "closed" ? " on" : ""}" onclick="setSbFilter('closed')">Closed</button>
+      <button class="sb-f-btn${sbSort === "urgency" ? " on" : ""}" onclick="toggleSbSort()" title="Sort by urgency">⚑</button>
+    </div>`;
+
   const el = $("docList");
+  el.innerHTML = filterBar;
+
   if (!list.length) {
-    el.innerHTML = `<div class="sb-empty"><div class="sb-empty-ic">⬡</div>${
-      docs.length
-        ? "No matches."
-        : "No documents yet.<br>Create one to get started."
+    el.innerHTML += `<div class="sb-empty"><div class="sb-empty-ic">⬡</div>${
+      docs.length ? "No matches." : "No documents yet.<br>Create one to get started."
     }</div>`;
     return;
   }
-  el.innerHTML = list
-    .map((d) => {
-      const dl = getDocDeadline(d);
-      const ap = getActivePhaseDeadline(d);
 
-      const dlColor =
-        dl.status === "late"
-          ? "color:var(--red)"
-          : dl.status === "atrisk"
-            ? "color:var(--warn)"
-            : dl.status === "ontime"
-              ? "color:var(--green)"
-              : "color:var(--muted)";
+  el.innerHTML += list.map((d) => {
+    const dl = getDocDeadline(d);
+    const ap = getActivePhaseDeadline(d);
 
-      const apColor =
-        ap?.status === "late"
-          ? "color:var(--red)"
-          : ap?.status === "atrisk"
-            ? "color:var(--warn)"
-            : ap?.status === "ontime"
-              ? "color:var(--green)"
-              : "color:var(--muted)";
+    const dlColor = dl.status === "late" ? "color:var(--red)"
+      : dl.status === "atrisk" ? "color:var(--warn)"
+      : dl.status === "ontime" ? "color:var(--green)"
+      : "color:var(--muted)";
 
-      const overallLine =
-        dl.status === "complete" || dl.status === "closed"
-          ? ""
-          : dl.remainingMs >= 0
-            ? `<span style="${dlColor}">Doc: ${fmtDuration(dl.remainingMs)} left</span>`
-            : `<span style="${dlColor}">Doc: ${fmtDuration(dl.remainingMs)} overdue</span>`;
+    const apColor = ap?.status === "late" ? "color:var(--red)"
+      : ap?.status === "atrisk" ? "color:var(--warn)"
+      : ap?.status === "ontime" ? "color:var(--green)"
+      : "color:var(--muted)";
 
-      const phaseLine = ap
-        ? ap.remainingMs >= 0
-          ? `<span style="${apColor}">${ap.phase}: ${fmtDuration(ap.remainingMs)} left</span>`
-          : `<span style="${apColor}">${ap.phase}: ${fmtDuration(Math.abs(ap.remainingMs))} overdue</span>`
-        : "";
+    const overallLine = dl.status === "complete" || dl.status === "closed" ? ""
+      : dl.remainingMs >= 0
+        ? `<span style="${dlColor}">Doc: ${fmtDuration(dl.remainingMs)} left</span>`
+        : `<span style="${dlColor}">Doc: ${fmtDuration(Math.abs(dl.remainingMs))} overdue</span>`;
 
-      const deadlineRow =
-        overallLine || phaseLine
-          ? `<div class="di-dl">${phaseLine}${phaseLine && overallLine ? '<span style="color:var(--dim)"> · </span>' : ""}${overallLine}</div>`
-          : "";
+    const phaseLine = ap
+      ? ap.remainingMs >= 0
+        ? `<span style="${apColor}">${ap.phase}: ${fmtDuration(ap.remainingMs)} left</span>`
+        : `<span style="${apColor}">${ap.phase}: ${fmtDuration(Math.abs(ap.remainingMs))} overdue</span>`
+      : "";
 
-      return `
-    <div class="doc-item${d.id === selId ? " sel" : ""}" data-id="${d.id}">
-      <div class="di-top"><span class="di-name">${esc(d.entity)}</span>${docBadge(d)}</div>
-      <div class="di-sub">Contact: ${esc(d.contact)} · ${fmt(d.createdAt).split(",")[0]}</div>
-      <div class="di-mid">
-        <span class="di-phase">${docsCurrentPhase(d)}</span>
-        ${!isClosed(d) && !isComplete(d) ? `<span class="di-pct">${docsPct(d)}%</span>` : ""}
-      </div>
-      <div class="di-bot"><span class="di-stage">↳ ${lastLabel(d)}</span></div>
-      ${deadlineRow}
-    </div>`;
-    })
-    .join("");
+    const deadlineRow = overallLine || phaseLine
+      ? `<div class="di-dl">${phaseLine}${phaseLine && overallLine ? '<span style="color:var(--dim)"> · </span>' : ""}${overallLine}</div>`
+      : "";
+
+    return `
+      <div class="doc-item${d.id === selId ? " sel" : ""}" data-id="${d.id}">
+        <div class="di-top"><span class="di-name">${esc(d.entity)}</span>${docBadge(d)}</div>
+        <div class="di-sub">Contact: ${esc(d.contact)} · ${fmt(d.createdAt).split(",")[0]}</div>
+        <div class="di-mid">
+          <span class="di-phase">${docsCurrentPhase(d)}</span>
+          ${!isClosed(d) && !isComplete(d) ? `<span class="di-pct">${docsPct(d)}%</span>` : ""}
+        </div>
+        <div class="di-bot"><span class="di-stage">↳ ${lastLabel(d)}</span></div>
+        ${deadlineRow}
+      </div>`;
+  }).join("");
+
   el.querySelectorAll(".doc-item").forEach((el) =>
-    el.addEventListener("click", () => selDoc(el.dataset.id)),
+    el.addEventListener("click", () => selDoc(el.dataset.id))
   );
 }
 $("sbSearch").addEventListener("input", renderSidebar);
+
+function setSbFilter(f) { sbFilter = f; renderSidebar(); }
+function toggleSbSort() { sbSort = sbSort === "urgency" ? "recent" : "urgency"; renderSidebar(); }
 
 /* ══════════════════════════════════════════════
    DETAIL
@@ -1074,38 +1103,59 @@ let _isLastTs = () => false;
 function renderDetail() {
   const doc = docs.find((d) => d.id === selId);
   if (!doc) return;
-
+console.log(doc.createdAt);
+console.log(workMs(doc.createdAt, new Date().toISOString()));
   console.log("DOC STAGES:", doc.stages);
   console.log("LEGAL BACK:", doc.stages["p3_legal_back"]);
   console.log("TECH BACK:", doc.stages["p3_tech_back"]);
   console.log("FIN BACK:", doc.stages["p3_fin_back"]);
   console.log("P3 DECISION:", doc.p3decision);
 
-  function countPathStages(doc) {
-    const pa = doc.preassess,
-      path = [];
-    path.push(...PHASE1A);
-    if (pa === "incomplete") path.push(...PHASE1B);
-    else if (pa === "complete") {
-      path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-      if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
-        // Path B — NOD → dead end
-        path.push(...PHASE3B, ...PHASE4B);
-      } else if (doc.p3decision === "compliant") {
-        // Path A — compliant → certificate
-        path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
-        if (doc.certOutcome === "approved")
-          path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-        else if (doc.certOutcome === "disapproved")
-          path.push(...PHASE5B, ...PHASE6B);
-      }
-    }
-    return path;
-  }
-  const pathStages = countPathStages(doc);
-  const totalStampable = Math.max(pathStages.length, 1);
-  const doneCount = pathStages.filter((s) => doc.stages[s.key]).length;
-  const pct = Math.round((doneCount / totalStampable) * 100);
+const s = doc.stages;
+const p2Start = s["p2_cdo_scan"]?.stampedAt;
+const p3Start = [s["p3_legal_recv"]?.stampedAt, s["p3_tech_recv"]?.stampedAt, s["p3_fin_recv"]?.stampedAt].filter(Boolean).sort().at(-1);
+const p4Start = s["p4a_cdo_accept"]?.stampedAt;
+const p5Start = s["p5a_eng_soa"]?.stampedAt;
+const p6Start = s["p6a_recv_dir"]?.stampedAt;
+const p7Start = s["p7_payment"]?.stampedAt;
+const p8Start = s["p8_recv_client"]?.stampedAt;
+const totalBudget =
+  1 * WD +           // p1a_eng_accept
+  1 * WD +           // p2 combined
+  7 * WD +           // p3 combined
+  4 * WH +           // p4a_cdo_accept
+  3 * WD +           // p4a_eng_briefer
+  1 * WD +           // p4a_chief_review
+  1 * WD +           // p4a_dir_rec
+  2 * WD +           // p4a_odc
+  2 * WH +           // p5_receipt
+  3 * WH +           // p5a_eng_soa
+  1 * WH +           // p5a_chief_soa
+  1 * WH +           // p5a_dir_soa
+  2 * WH +           // p6a_recv_dir
+  20 * WM +          // p7_payment
+  2 * WH +           // p8_release
+  40 * WM;           // p8_scan
+
+let elapsed = 0;
+if (s["p1a_eng_accept"]?.stampedAt) elapsed += 1 * WD;
+if (s["p2_cdo_route"]?.stampedAt) elapsed += 1 * WD;
+if (s["p3_legal_back"]?.stampedAt && s["p3_tech_back"]?.stampedAt && s["p3_fin_back"]?.stampedAt) elapsed += 7 * WD;
+if (s["p4a_cdo_accept"]?.stampedAt) elapsed += 4 * WH;
+if (s["p4a_eng_briefer"]?.stampedAt) elapsed += 3 * WD;
+if (s["p4a_chief_review"]?.stampedAt) elapsed += 1 * WD;
+if (s["p4a_dir_rec"]?.stampedAt) elapsed += 1 * WD;
+if (s["p4a_odc"]?.stampedAt) elapsed += 2 * WD;
+if (s["p5_receipt"]?.stampedAt) elapsed += 2 * WH;
+if (s["p5a_eng_soa"]?.stampedAt) elapsed += 3 * WH;
+if (s["p5a_chief_soa"]?.stampedAt) elapsed += 1 * WH;
+if (s["p5a_dir_soa"]?.stampedAt) elapsed += 1 * WH;
+if (s["p6a_recv_dir"]?.stampedAt) elapsed += 2 * WH;
+if (s["p7_payment"]?.stampedAt) elapsed += 20 * WM;
+if (s["p8_release"]?.stampedAt) elapsed += 2 * WH;
+if (s["p8_scan"]?.stampedAt) elapsed += 40 * WM;
+
+const pct = isComplete(doc) ? 100 : Math.min(99, Math.round((elapsed / totalBudget) * 100));
 
 // Build per-track last stamped keys for parallel Phase 3 tracks
 const lastPerTrack = {};
@@ -1206,14 +1256,16 @@ const onP3B = allP3Done && anyNOD;
                     ? "var(--warn)"
                     : "var(--green)";
               const docPart =
-                dl.remainingMs >= 0
-                  ? `Doc: <strong>${fmtDuration(dl.remainingMs)} left</strong>`
-                  : `Doc: <strong>${fmtDuration(Math.abs(dl.remainingMs))} overdue</strong>`;
-              const phasePart = ap
-                ? ap.remainingMs >= 0
-                  ? `${ap.phase}: <strong>${fmtDuration(ap.remainingMs)} left</strong>`
-                  : `${ap.phase}: <strong>${fmtDuration(Math.abs(ap.remainingMs))} overdue</strong>`
-                : "";
+              dl.remainingMs >= 0
+                ? `Doc: <strong>${fmtDuration(dl.remainingMs)} left</strong>`
+                : `Doc: <strong>${fmtDuration(Math.abs(dl.remainingMs))} overdue</strong>`;
+
+            const phasePart = ap
+              ? ap.remainingMs >= 0
+                ? `${ap.phase}: <strong>${fmtDuration(ap.remainingMs)} left</strong>`
+                : `${ap.phase}: <strong>${fmtDuration(Math.abs(ap.remainingMs))} overdue</strong>`
+              : "";
+
               return `
                 <span class="det-meta-sep">·</span>
                 ${phasePart ? `<span class="det-meta-i" style="color:${apColor}">${phasePart}</span><span class="det-meta-sep">·</span>` : ""}
@@ -1406,7 +1458,7 @@ const onP3B = allP3Done && anyNOD;
   /* ── PHASE 4 ── */
   const p4bDone = p3bDone && PHASE4B.every((s) => doc.stages[s.key]);
   const p4Locked2 = !p4Unlocked;
-  html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}${phaseDeadlineTag("Phase 4A", doc)}</div>`;
+  html += `<div class="ph-hd ${p4Locked2 ? "locked" : ""}">Phase 4 — ${p3bDone ? "Path B — Deficiency" : "Path A — Briefer & Certificate"}${phaseDeadlineTag("Phase 4", doc)}</div>`;
   if (!p4Locked2) {
     if (p3aDone) {
       html += `<div class="stage-box">
@@ -1541,7 +1593,7 @@ const onP3B = allP3Done && anyNOD;
 
   /* ── PHASE 7 ── */
   const p7Locked2 = !p7Unlocked;
-  html += `<div class="ph-hd ${p7Locked2 ? "locked" : ""}">Phase 7 — Payment</div>`;
+  html += `<div class="ph-hd ${p7Locked2 ? "locked" : ""}">Phase 7 — Payment${phaseDeadlineTag("Phase 7", doc)}</div>`;
   if (!p7Locked2) {
     html += `<div class="stage-box">
       <div class="stage-box-hd"><span class="sb-title">Phase 7 — Payment Stage (Client)</span><span class="${doc.stages["p7_payment"] ? "sb-status-on" : "sb-status-off"}">${doc.stages["p7_payment"] ? "✓ Paid" : "Awaiting Payment"}</span></div>
@@ -1606,9 +1658,9 @@ const onP3B = allP3Done && anyNOD;
    CREATE DOC
 ══════════════════════════════════════════════ */
 function openCreate() {
-  $("f-entity").value = "";
-  $("f-contact").value = "";
-  $("f-email").value = "";
+  $("f-entity").value = "test";
+  $("f-contact").value = "test";
+  $("f-email").value = "as.protyper@gmail.com";
   $("f-remarks").value = "";
   $("f-emailVerif").checked = false;
   $("cb-lbl").className = "cb-lbl";
@@ -2152,11 +2204,11 @@ function openEmailPrev(type, docId) {
   } else if (type === "p6a_notify") {
     title = "Notification — Approved &amp; SOA";
     subj = "Document Tracker — Application Approved";
-    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Please find the attached Statement of Account with fees to be paid. Kindly settle the payment to proceed with certificate release.<br><br>Thank you.`;
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We are pleased to inform you that your application has been approved.<br><br>Kindly visit our office to settle the payment to proceed with certificate release.<br><br>Thank you.`;
   } else if (type === "p6b_notify") {
     title = "Notification — Disapproval";
     subj = "Document Tracker — Notice of Disapproval";
-    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. Please refer to the attached Notice of Disapproval. Your application documents are being returned.<br><br>Thank you.`;
+    body = `Dear ${esc(doc.contact)} of ${esc(doc.entity)},<br><br>We regret to inform you that your application has been disapproved. We will contact you for further details.<br><br>Thank you.`;
   } else if (type === "p3b_notify") {
     title = "Notification — Notice of Deficiency";
     subj = "Document Tracker — Notice of Deficiency";
@@ -2258,7 +2310,7 @@ function openSummary(docId) {
     {
       field: "p3b_notif_ts",
       label: "Applicant Notified (P3B)",
-      phase: "Phase 3B",
+       phase: "Phase 3B",
     },
     {
       field: "p3b_return_ts",
@@ -2867,25 +2919,27 @@ async function doRedact() {
    DOCUMENTS PAGE
 ══════════════════════════════════════════════ */
 function docsPct(doc) {
-  const pa = doc.preassess,
-    path = [];
-  path.push(...PHASE1A);
-  if (pa === "incomplete") path.push(...PHASE1B);
-  else if (pa === "complete") {
-    path.push(...PHASE2, ...PHASE3_LEGAL, ...PHASE3_TECH, ...PHASE3_FIN);
-    if (doc.nod_legal || doc.nod_tech || doc.nod_fin) {
-      path.push(...PHASE3B, ...PHASE4B);
-    } else if (doc.p3decision === "compliant") {
-      path.push(...PHASE3A, ...PHASE4A, ...PHASE5);
-      if (doc.certOutcome === "approved")
-        path.push(...PHASE5A, ...PHASE6A, ...PHASE7, ...PHASE8);
-      else if (doc.certOutcome === "disapproved")
-        path.push(...PHASE5B, ...PHASE6B);
-    }
-  }
-  const total = Math.max(path.length, 1);
-  const done = path.filter((s) => doc.stages[s.key]).length;
-  return Math.round((done / total) * 100);
+  if (isComplete(doc)) return 100;
+  const s = doc.stages;
+  let elapsed = 0;
+  if (s["p1a_eng_accept"]?.stampedAt) elapsed += 1 * WD;
+  if (s["p2_cdo_route"]?.stampedAt) elapsed += 1 * WD;
+  if (s["p3_legal_back"]?.stampedAt && s["p3_tech_back"]?.stampedAt && s["p3_fin_back"]?.stampedAt) elapsed += 7 * WD;
+  if (s["p4a_cdo_accept"]?.stampedAt) elapsed += 4 * WH;
+  if (s["p4a_eng_briefer"]?.stampedAt) elapsed += 3 * WD;
+  if (s["p4a_chief_review"]?.stampedAt) elapsed += 1 * WD;
+  if (s["p4a_dir_rec"]?.stampedAt) elapsed += 1 * WD;
+  if (s["p4a_odc"]?.stampedAt) elapsed += 2 * WD;
+  if (s["p5_receipt"]?.stampedAt) elapsed += 2 * WH;
+  if (s["p5a_eng_soa"]?.stampedAt) elapsed += 3 * WH;
+  if (s["p5a_chief_soa"]?.stampedAt) elapsed += 1 * WH;
+  if (s["p5a_dir_soa"]?.stampedAt) elapsed += 1 * WH;
+  if (s["p6a_recv_dir"]?.stampedAt) elapsed += 2 * WH;
+  if (s["p7_payment"]?.stampedAt) elapsed += 20 * WM;
+  if (s["p8_release"]?.stampedAt) elapsed += 2 * WH;
+  if (s["p8_scan"]?.stampedAt) elapsed += 40 * WM;
+  const totalBudget = 1*WD + 1*WD + 7*WD + 4*WH + 3*WD + 1*WD + 1*WD + 2*WD + 2*WH + 3*WH + 1*WH + 1*WH + 2*WH + 20*WM + 2*WH + 40*WM;
+  return Math.min(99, Math.round((elapsed / totalBudget) * 100));
 }
 
 function docsStatusInfo(doc) {
@@ -3372,6 +3426,9 @@ Object.assign(window, {
   applyFont,
   openSettings,
   doExportMetrics,
+  setSbFilter,
+  toggleSbSort,
+
   setDocsFilter: (v) => {
     docsFilter = v;
     renderDocsPage();

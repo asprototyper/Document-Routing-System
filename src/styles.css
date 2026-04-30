@@ -399,6 +399,29 @@ body {
   color: var(--muted);
 }
 
+.sb-filter-row {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--b1);
+}
+.sb-f-btn {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 11px;
+  background: none;
+  border: 1px solid var(--b2);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.sb-f-btn.on {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+
 .doc-count {
   background: var(--s2);
   border: 1px solid var(--b1);
@@ -498,7 +521,7 @@ body {
 }
 
 .di-name {
-  font-size: 16px;
+  font-size: px;
   font-weight: 500;
   color: var(--text);
   overflow: hidden;
@@ -525,6 +548,19 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 160px;
+}
+
+
+.di-dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  margin-top: 3px;
+}
+.det-meta-sep {
+  color: var(--dim);
+  margin: 0 2px;
 }
 
 .badge {
