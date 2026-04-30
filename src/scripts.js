@@ -2263,22 +2263,48 @@ function openSummary(docId) {
     return `${h}h ${min}m`;
   }
 
-  const events = [{ label: "Document Created", ts: doc.createdAt, phase: "" }];
+  const stageBudget = {
+    p1a_eng_accept:  1 * WD,
+    p2_cdo_scan:     null,
+    p2_cdo_route:    1 * WD,
+    p3_legal_recv:   null,
+    p3_tech_recv:    null,
+    p3_fin_recv:     null,
+    p3_legal_back:   null,
+    p3_tech_back:    null,
+    p3_fin_back:     7 * WD,
+    p4a_cdo_accept:  4 * WH,
+    p4a_eng_briefer: 3 * WD,
+    p4a_chief_review:1 * WD,
+    p4a_dir_rec:     1 * WD,
+    p4a_odc:         2 * WD,
+    p5_receipt:      2 * WH,
+    p5a_eng_soa:     3 * WH,
+    p5a_chief_soa:   1 * WH,
+    p5a_dir_soa:     1 * WH,
+    p6a_recv_dir:    2 * WH,
+    p7_payment:      20 * WM,
+    p8_recv_client:  null,
+    p8_release:      2 * WH,
+    p8_scan:         40 * WM,
+  };
+
+  const events = [{ label: "Document Created", ts: doc.createdAt, phase: "", key: null }];
   const groups = [
-    { phase: "Phase 1A — Engineer", stages: PHASE1A },
-    { phase: "Phase 2 — CDO II", stages: PHASE2 },
+    { phase: "Phase 1", stages: PHASE1A },
+    { phase: "Phase 2", stages: PHASE2 },
     { phase: "Phase 1B", stages: PHASE1B },
     { phase: "Phase 3 — Legal", stages: PHASE3_LEGAL },
     { phase: "Phase 3 — Technical", stages: PHASE3_TECH },
     { phase: "Phase 3 — Financial", stages: PHASE3_FIN },
     { phase: "Phase 3A", stages: PHASE3A },
     { phase: "Phase 3B", stages: PHASE3B },
-    { phase: "Phase 4A", stages: PHASE4A },
+    { phase: "Phase 4", stages: PHASE4A },
     { phase: "Phase 4B", stages: PHASE4B },
     { phase: "Phase 5", stages: PHASE5 },
     { phase: "Phase 5A", stages: PHASE5A },
     { phase: "Phase 5B", stages: PHASE5B },
-    { phase: "Phase 6A", stages: PHASE6A },
+    { phase: "Phase 6", stages: PHASE6A },
     { phase: "Phase 6B", stages: PHASE6B },
     { phase: "Phase 7", stages: PHASE7 },
     { phase: "Phase 8", stages: PHASE8 },
@@ -2287,116 +2313,79 @@ function openSummary(docId) {
     g.stages.forEach((s) => {
       const sd = doc.stages[s.key];
       if (sd?.stampedAt)
-        events.push({
-          label: s.label.replace(/&amp;/g, "&"),
-          ts: sd.stampedAt,
-          phase: g.phase,
-          sd,
-        });
-    }),
+        events.push({ label: s.label.replace(/&amp;/g, "&"), ts: sd.stampedAt, phase: g.phase, key: s.key, sd });
+    })
   );
   const tsFields = [
-    { field: "paTs", label: "Pre-Assessment Recorded", phase: "Phase 1" },
-    {
-      field: "p3mergeTs",
-      label: "Phase 3 Merge — No Findings",
-      phase: "Phase 3",
-    },
-    {
-      field: "certDecisionTs",
-      label: `Certificate ${doc.certOutcome || "Decision"}`,
-      phase: "Phase 5",
-    },
-    {
-      field: "p3b_notif_ts",
-      label: "Applicant Notified (P3B)",
-       phase: "Phase 3B",
-    },
-    {
-      field: "p3b_return_ts",
-      label: "Application Returned (P3B)",
-      phase: "Phase 3B",
-    },
-    {
-      field: "p6a_notif_ts",
-      label: "Client Notified — Approved",
-      phase: "Phase 6A",
-    },
-    {
-      field: "p6b_notif_ts",
-      label: "Client Notified — Disapproval",
-      phase: "Phase 6B",
-    },
-    {
-      field: "p6b_return_ts",
-      label: "Application Returned (6B)",
-      phase: "Phase 6B",
-    },
+    { field: "p3mergeTs", label: "Phase 3 Merge — No Findings", phase: "Phase 3" },
+    { field: "certDecisionTs", label: `Certificate ${doc.certOutcome || "Decision"}`, phase: "Phase 5" },
+    { field: "p6a_notif_ts", label: "Client Notified — Approved", phase: "Phase 6" },
+    { field: "p6b_notif_ts", label: "Client Notified — Disapproval", phase: "Phase 6B" },
+    { field: "p6b_return_ts", label: "Application Returned (6B)", phase: "Phase 6B" },
+    { field: "p3b_notif_ts", label: "Applicant Notified (P3B)", phase: "Phase 3B" },
+    { field: "p3b_return_ts", label: "Application Returned (P3B)", phase: "Phase 3B" },
   ];
   tsFields.forEach((f) => {
-    if (doc[f.field])
-      events.push({ label: f.label, ts: doc[f.field], phase: f.phase });
+    if (doc[f.field]) events.push({ label: f.label, ts: doc[f.field], phase: f.phase, key: null });
   });
   events.sort((a, b) => new Date(a.ts) - new Date(b.ts));
 
-  const firstTs = events[0]?.ts,
-    lastTs = events[events.length - 1]?.ts;
-  const totalWall =
-    lastTs && firstTs ? new Date(lastTs) - new Date(firstTs) : 0;
+  const firstTs = events[0]?.ts, lastTs = events[events.length - 1]?.ts;
   const totalWork = lastTs && firstTs ? workMs(firstTs, lastTs) : 0;
-  let maxW = 0,
-    bnLabel = "";
+  let maxW = 0, bnLabel = "";
   for (let i = 1; i < events.length; i++) {
     const w = workMs(events[i - 1].ts, events[i].ts);
-    if (w > maxW) {
-      maxW = w;
-      bnLabel = events[i].label;
-    }
-  }
-  const maxWall = Math.max(
-    1,
-    ...Array.from(
-      { length: Math.max(events.length - 1, 0) },
-      (_, i) => new Date(events[i + 1]?.ts) - new Date(events[i]?.ts),
-    ),
-  );
-
-  let statusLabel = "In Progress",
-    statusColor = "var(--red)";
-  if (isComplete(doc)) {
-    statusLabel = "Complete";
-    statusColor = "var(--green)";
-  } else if (isClosed(doc)) {
-    statusLabel = "Closed";
-    statusColor = "var(--red)";
+    if (w > maxW) { maxW = w; bnLabel = events[i].label; }
   }
 
-  const stageRows = events
-    .map((ev, i) => {
-      if (i === 0)
-        return `<div class="sum-stage-row"><div style="color:var(--muted)">${ev.label}</div><div style="color:var(--text);font-size:10px">${fmt(ev.ts)}</div><div style="color:var(--dim);text-align:right">—</div><div></div></div>`;
-      const wall = new Date(ev.ts) - new Date(events[i - 1].ts);
-      const wk = workMs(events[i - 1].ts, ev.ts);
-      const pct = Math.round((wall / maxWall) * 100);
-      const clr =
-        wall === maxWall
-          ? "var(--red)"
-          : pct > 50
-            ? "var(--red)"
-            : "var(--green)";
-      const sub = ev.sd?.passedBy
-        ? ` <span style="color:var(--green);font-size:9px">· ${esc(ev.sd.passedBy)}</span>`
-        : ev.sd?.sentBy
-          ? ` <span style="color:var(--green);font-size:9px">· CDO: ${esc(ev.sd.sentBy)}</span>`
-          : "";
+  let statusLabel = "In Progress", statusColor = "var(--red)";
+  if (isComplete(doc)) { statusLabel = "Complete"; statusColor = "var(--green)"; }
+  else if (isClosed(doc)) { statusLabel = "Closed"; statusColor = "var(--red)"; }
+
+  const stageRows = events.map((ev, i) => {
+    if (i === 0)
       return `<div class="sum-stage-row">
+        <div style="color:var(--muted)">${ev.label}</div>
+        <div style="color:var(--text);font-size:10px">${fmt(ev.ts)}</div>
+        <div style="color:var(--dim);text-align:right">—</div>
+        <div></div>
+      </div>`;
+
+const nextTs = events[i + 1]?.ts;
+    const wk = nextTs ? workMs(ev.ts, nextTs) : workMs(ev.ts, new Date().toISOString());
+    const allotted = ev.key != null ? stageBudget[ev.key] : null;
+    // for shared-budget phases, compare phase total vs allotted
+    const phaseTotal = ev.phase
+      ? events.reduce((sum, e, eIdx) => {
+          if (e.phase !== ev.phase) return sum;
+          const nTs = events[eIdx + 1]?.ts;
+          return sum + (nTs ? workMs(e.ts, nTs) : workMs(e.ts, new Date().toISOString()));
+        }, 0)
+      : null;
+    const compareMs = allotted != null ? phaseTotal : null;
+    const clr = compareMs == null ? "var(--dim)"
+      : compareMs <= allotted ? "var(--green)"
+      : "var(--red)";
+    const sub = ev.sd?.passedBy
+      ? ` <span style="color:var(--green);font-size:9px">· ${esc(ev.sd.passedBy)}</span>`
+      : ev.sd?.sentBy
+        ? ` <span style="color:var(--green);font-size:9px">· CDO: ${esc(ev.sd.sentBy)}</span>`
+        : "";
+
+    return `<div class="sum-stage-row">
       <div><span style="color:var(--text)">${ev.label}</span>${sub}<div style="font-size:9px;color:var(--dim)">${ev.phase}</div></div>
       <div style="color:var(--muted);font-size:10px">${fmt(ev.ts)}</div>
-      <div style="text-align:right"><div style="color:var(--text)">${durStr(wall)}</div><div style="font-size:9px;color:var(--dim)">${durStr(wk)} work</div></div>
-      <div><div class="ssr-bar-bg"><div class="ssr-bar-fill" style="width:${pct}%;background:${clr}"></div></div></div>
+      <div style="text-align:right">
+        <div style="color:${clr}">${durStr(wk)}${allotted ? ` / ${durStr(allotted)}` : ""}</div>
+        ${allotted != null
+          ? compareMs <= allotted
+            ? `<div style="font-size:9px;color:var(--green)">▲ ${durStr(allotted - compareMs)} early</div>`
+            : `<div style="font-size:9px;color:var(--red)">▼ ${durStr(compareMs - allotted)} late</div>`
+          : `<div style="font-size:9px;color:var(--dim)">—</div>`}
+      </div>
+      <div><div class="ssr-bar-bg"><div class="ssr-bar-fill" style="width:${allotted != null ? Math.min(100, Math.round((compareMs / allotted) * 100)) : 0}%;background:${clr}"></div></div></div>
     </div>`;
-    })
-    .join("");
+  }).join("");
 
   $("sum-body").innerHTML = `
     <div class="sum-section">
@@ -2413,39 +2402,28 @@ function openSummary(docId) {
     <div class="sum-section">
       <div class="sum-sec-title">Time Statistics</div>
       <div class="sum-meta-grid">
-        <div class="sum-meta-card"><div class="smc-lbl">Total Elapsed</div><div class="smc-val" style="color:var(--red)">${totalWall > 0 ? durStr(totalWall) : "In progress"}</div></div>
-        <div class="sum-meta-card"><div class="smc-lbl">Working Time</div><div class="smc-val" style="color:var(--red)">${totalWork > 0 ? durStr(totalWork) : "In progress"}</div></div>
+        <div class="sum-meta-card"><div class="smc-lbl">Working Time Used</div><div class="smc-val" style="color:var(--red)">${totalWork > 0 ? durStr(totalWork) : "In progress"}</div></div>
+        <div class="sum-meta-card"><div class="smc-lbl">Total Budget</div><div class="smc-val">${durStr(1*WD + 1*WD + 7*WD + 4*WH + 3*WD + 1*WD + 1*WD + 2*WD + 2*WH + 3*WH + 1*WH + 1*WH + 2*WH + 20*WM + 2*WH + 40*WM)}</div></div>
         <div class="sum-meta-card"><div class="smc-lbl">Slowest Stage</div><div class="smc-val" style="color:var(--red);font-size:11px">${bnLabel || "—"}${maxW > 0 ? `<div style="font-size:10px;color:var(--muted)">${durStr(maxW)} working</div>` : ""}</div></div>
       </div>
     </div>
     <div class="sum-section">
       <div class="sum-sec-title">Stage-by-Stage Breakdown</div>
       <div style="background:var(--s1);border:1px solid var(--b1);border-radius:5px;overflow:hidden">
-        <div class="sum-stage-row hd"><div>Stage</div><div>Timestamp</div><div style="text-align:right">Time Since Prev.</div><div style="text-align:right">Rel.</div></div>
+        <div class="sum-stage-row hd"><div>Stage</div><div>Timestamp</div><div style="text-align:right">Time Spent / Allotted</div><div style="text-align:right">Rel.</div></div>
         ${stageRows || `<div style="padding:14px;text-align:center;font-size:12px;color:var(--dim)">No stages recorded yet.</div>`}
       </div>
-      ${totalWall > 0 ? `<div class="sum-total-row"><span style="color:var(--muted);font-size:12px">Total</span><span style="color:var(--red);font-size:12px;font-weight:500">${durStr(totalWall)} elapsed · ${durStr(totalWork)} working</span></div>` : ""}
+      ${totalWork > 0 ? `<div class="sum-total-row"><span style="color:var(--muted);font-size:12px">Total Working Time</span><span style="color:var(--red);font-size:12px;font-weight:500">${durStr(totalWork)}</span></div>` : ""}
     </div>`;
+
   const _sumExportBtn = document.getElementById("sum-export-btn");
   if (_sumExportBtn) {
-    // capture current closure vars for the export
-    const _evSnap = [...events];
-    const _twSnap = totalWall,
-      _tkSnap = totalWork,
-      _mwSnap = maxW,
-      _bnSnap = bnLabel;
+    const _evSnap = [...events], _tkSnap = totalWork, _mwSnap = maxW, _bnSnap = bnLabel;
     _sumExportBtn.onclick = async () => {
       _sumExportBtn.textContent = "Exporting…";
       _sumExportBtn.disabled = true;
       try {
-        await exportSummaryPDF({
-          doc,
-          events: _evSnap,
-          totalWall: _twSnap,
-          totalWork: _tkSnap,
-          maxW: _mwSnap,
-          bnLabel: _bnSnap,
-        });
+        await exportSummaryPDF({ doc, events: _evSnap, totalWall: 0, totalWork: _tkSnap, maxW: _mwSnap, bnLabel: _bnSnap });
         toast("Summary PDF exported.");
       } catch (e) {
         console.error(e);
