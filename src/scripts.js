@@ -463,11 +463,14 @@ function getPhaseInfo(doc) {
   // resolve start stamps
   const p1Start  = doc.createdAt;
   const p2Start  = s["p2_cdo_scan"]?.stampedAt;
-  const p3Start  = [
+  // Phase 3 starts when the FIRST branch is received (earliest stamp)
+  const p3Receives = [
     s["p3_legal_recv"]?.stampedAt,
     s["p3_tech_recv"]?.stampedAt,
     s["p3_fin_recv"]?.stampedAt,
-  ].filter(Boolean).sort().at(-1); // last of the three
+  ].filter(Boolean).sort();
+  const p3Start  = p3Receives.at(0);  // earliest = phase 3 clock starts
+  const p3AllRecv = p3Receives.at(-1); // latest  = phase 2 clock ends (all received)
   const p4Start  = s["p4a_cdo_accept"]?.stampedAt || s["p4b_cdo_accept"]?.stampedAt;
   const p5Start  = s["p5a_eng_soa"]?.stampedAt    || s["p5b_chief_nod"]?.stampedAt;
   const p6Start  = s["p6a_recv_dir"]?.stampedAt   || s["p6b_recv_odc"]?.stampedAt;
@@ -476,7 +479,7 @@ function getPhaseInfo(doc) {
 
   // resolve end stamps
   const p1End    = p2Start;
-  const p2End    = p3Start;
+  const p2End    = p3AllRecv; // Phase 2 ends when the LAST of the 3 branches has been received
   const p3End    = p4Start;
   const p4End    = p5Start;
   const p5End    = p6Start;
@@ -488,12 +491,10 @@ function getPhaseInfo(doc) {
   const anyNOD   = doc.nod_legal || doc.nod_tech || doc.nod_fin;
   const approved = doc.certOutcome === "approved";
 
-  const p4Budget = anyNOD
-    ? 4 * WH
-    : 7 * WD + 8 * WH;
-  const p5Budget = approved
-    ? 7 * WH
-    : 14 * WH;
+  // Phase 4 budget: 4h (CDO) + 3d (Engineer) + 1d (Chief) + 1d4h (Director) + 2d (ODC) = 7d 8h
+  const p4Budget = 7 * WD + 8 * WH;
+  // Phase 5A budget: 2h (Engineer SOA) + 2h (p5_receipt) + 1h (Chief SOA) + 1h (Director SOA) = 6h
+  const p5Budget = approved ? 6 * WH : 14 * WH;
 
   return [
     { key: "p1", label: "Phase 1", start: p1Start, end: p1End, budget: 1 * WD },
@@ -1113,7 +1114,8 @@ console.log(workMs(doc.createdAt, new Date().toISOString()));
 
 const s = doc.stages;
 const p2Start = s["p2_cdo_scan"]?.stampedAt;
-const p3Start = [s["p3_legal_recv"]?.stampedAt, s["p3_tech_recv"]?.stampedAt, s["p3_fin_recv"]?.stampedAt].filter(Boolean).sort().at(-1);
+const p3Receives = [s["p3_legal_recv"]?.stampedAt, s["p3_tech_recv"]?.stampedAt, s["p3_fin_recv"]?.stampedAt].filter(Boolean).sort();
+const p3Start = p3Receives.at(0); // earliest = phase 3 starts
 const p4Start = s["p4a_cdo_accept"]?.stampedAt;
 const p5Start = s["p5a_eng_soa"]?.stampedAt;
 const p6Start = s["p6a_recv_dir"]?.stampedAt;
@@ -1126,16 +1128,16 @@ const totalBudget =
   4 * WH +           // p4a_cdo_accept
   3 * WD +           // p4a_eng_briefer
   1 * WD +           // p4a_chief_review
-  1 * WD +           // p4a_dir_rec
+  1 * WD + 4 * WH +  // p4a_dir_rec (1 day + 4 hours)
   2 * WD +           // p4a_odc
   2 * WH +           // p5_receipt
-  3 * WH +           // p5a_eng_soa
+  2 * WH +           // p5a_eng_soa (2 hours, not 3)
   1 * WH +           // p5a_chief_soa
   1 * WH +           // p5a_dir_soa
-  2 * WH +           // p6a_recv_dir
+  2 * WH +           // p6 phase budget
   20 * WM +          // p7_payment
-  2 * WH +           // p8_release
-  40 * WM;           // p8_scan
+  2 * WH +           // p8_recv_client
+  40 * WM;           // p8_release
 
 let elapsed = 0;
 if (s["p1a_eng_accept"]?.stampedAt) elapsed += 1 * WD;
@@ -1144,16 +1146,17 @@ if (s["p3_legal_back"]?.stampedAt && s["p3_tech_back"]?.stampedAt && s["p3_fin_b
 if (s["p4a_cdo_accept"]?.stampedAt) elapsed += 4 * WH;
 if (s["p4a_eng_briefer"]?.stampedAt) elapsed += 3 * WD;
 if (s["p4a_chief_review"]?.stampedAt) elapsed += 1 * WD;
-if (s["p4a_dir_rec"]?.stampedAt) elapsed += 1 * WD;
+if (s["p4a_dir_rec"]?.stampedAt) elapsed += 1 * WD + 4 * WH;  // 1 day + 4 hours
 if (s["p4a_odc"]?.stampedAt) elapsed += 2 * WD;
 if (s["p5_receipt"]?.stampedAt) elapsed += 2 * WH;
-if (s["p5a_eng_soa"]?.stampedAt) elapsed += 3 * WH;
+if (s["p5a_eng_soa"]?.stampedAt) elapsed += 2 * WH;            // 2 hours (not 3)
 if (s["p5a_chief_soa"]?.stampedAt) elapsed += 1 * WH;
 if (s["p5a_dir_soa"]?.stampedAt) elapsed += 1 * WH;
 if (s["p6a_recv_dir"]?.stampedAt) elapsed += 2 * WH;
 if (s["p7_payment"]?.stampedAt) elapsed += 20 * WM;
-if (s["p8_release"]?.stampedAt) elapsed += 2 * WH;
-if (s["p8_scan"]?.stampedAt) elapsed += 40 * WM;
+if (s["p8_recv_client"]?.stampedAt) elapsed += 2 * WH;         // 2 hours (was null/missing)
+if (s["p8_release"]?.stampedAt) elapsed += 40 * WM;            // 40 minutes (was incorrectly 2 WH)
+// p8_scan marks end of document — no elapsed budget
 
 const pct = isComplete(doc) ? 100 : Math.min(99, Math.round((elapsed / totalBudget) * 100));
 
@@ -2265,28 +2268,28 @@ function openSummary(docId) {
 
   const stageBudget = {
     p1a_eng_accept:  1 * WD,
-    p2_cdo_scan:     null,
-    p2_cdo_route:    1 * WD,
-    p3_legal_recv:   null,
-    p3_tech_recv:    null,
-    p3_fin_recv:     null,
-    p3_legal_back:   null,
-    p3_tech_back:    null,
-    p3_fin_back:     7 * WD,
-    p4a_cdo_accept:  4 * WH,
-    p4a_eng_briefer: 3 * WD,
-    p4a_chief_review:1 * WD,
-    p4a_dir_rec:     1 * WD,
-    p4a_odc:         2 * WD,
-    p5_receipt:      2 * WH,
-    p5a_eng_soa:     3 * WH,
-    p5a_chief_soa:   1 * WH,
-    p5a_dir_soa:     1 * WH,
-    p6a_recv_dir:    2 * WH,
-    p7_payment:      20 * WM,
-    p8_recv_client:  null,
-    p8_release:      2 * WH,
-    p8_scan:         40 * WM,
+    p2_cdo_scan:     null,           // part of Phase 2 whole-phase budget
+    p2_cdo_route:    null,           // part of Phase 2 whole-phase budget
+    p3_legal_recv:   null,           // part of Phase 3 whole-phase budget
+    p3_tech_recv:    null,           // part of Phase 3 whole-phase budget
+    p3_fin_recv:     null,           // part of Phase 3 whole-phase budget
+    p3_legal_back:   null,           // part of Phase 3 whole-phase budget
+    p3_tech_back:    null,           // part of Phase 3 whole-phase budget
+    p3_fin_back:     null,           // part of Phase 3 whole-phase budget
+    p4a_cdo_accept:  4 * WH,         // Record Receipt of Documents — 4 hours
+    p4a_eng_briefer: 3 * WD,         // Engineer Briefer — 3 days
+    p4a_chief_review:1 * WD,         // Chief-SID Review — 1 day
+    p4a_dir_rec:     1 * WD + 4 * WH,// Director-RB Recommendation — 1 day + 4 hours
+    p4a_odc:         2 * WD,         // ODC — 2 days
+    p5_receipt:      2 * WH,         // Certificate decision recorded — 2 hours
+    p5a_eng_soa:     2 * WH,         // Engineer SOA — 2 hours (was incorrectly 3)
+    p5a_chief_soa:   1 * WH,         // Chief-SID SOA — 1 hour
+    p5a_dir_soa:     1 * WH,         // Director-RB SOA — 1 hour
+    p6a_recv_dir:    null,           // part of Phase 6 whole-phase budget (2 WH)
+    p7_payment:      20 * WM,        // Payment — 20 minutes
+    p8_recv_client:  2 * WH,         // Received from Client — 2 hours
+    p8_release:      40 * WM,        // Release Certificate — 40 minutes (was incorrectly 2 WH)
+    p8_scan:         null,           // Record Release & Scan — marks end, no budget
   };
 
   const events = [{ label: "Document Created", ts: doc.createdAt, phase: "", key: null }];
@@ -2403,7 +2406,7 @@ const nextTs = events[i + 1]?.ts;
       <div class="sum-sec-title">Time Statistics</div>
       <div class="sum-meta-grid">
         <div class="sum-meta-card"><div class="smc-lbl">Working Time Used</div><div class="smc-val" style="color:var(--red)">${totalWork > 0 ? durStr(totalWork) : "In progress"}</div></div>
-        <div class="sum-meta-card"><div class="smc-lbl">Total Budget</div><div class="smc-val">${durStr(1*WD + 1*WD + 7*WD + 4*WH + 3*WD + 1*WD + 1*WD + 2*WD + 2*WH + 3*WH + 1*WH + 1*WH + 2*WH + 20*WM + 2*WH + 40*WM)}</div></div>
+        <div class="sum-meta-card"><div class="smc-lbl">Total Budget</div><div class="smc-val">${durStr(1*WD + 1*WD + 7*WD + 4*WH + 3*WD + 1*WD + (1*WD+4*WH) + 2*WD + 2*WH + 2*WH + 1*WH + 1*WH + 2*WH + 20*WM + 2*WH + 40*WM)}</div></div>
         <div class="sum-meta-card"><div class="smc-lbl">Slowest Stage</div><div class="smc-val" style="color:var(--red);font-size:11px">${bnLabel || "—"}${maxW > 0 ? `<div style="font-size:10px;color:var(--muted)">${durStr(maxW)} working</div>` : ""}</div></div>
       </div>
     </div>
@@ -2906,17 +2909,18 @@ function docsPct(doc) {
   if (s["p4a_cdo_accept"]?.stampedAt) elapsed += 4 * WH;
   if (s["p4a_eng_briefer"]?.stampedAt) elapsed += 3 * WD;
   if (s["p4a_chief_review"]?.stampedAt) elapsed += 1 * WD;
-  if (s["p4a_dir_rec"]?.stampedAt) elapsed += 1 * WD;
+  if (s["p4a_dir_rec"]?.stampedAt) elapsed += 1 * WD + 4 * WH;  // 1 day + 4 hours
   if (s["p4a_odc"]?.stampedAt) elapsed += 2 * WD;
   if (s["p5_receipt"]?.stampedAt) elapsed += 2 * WH;
-  if (s["p5a_eng_soa"]?.stampedAt) elapsed += 3 * WH;
+  if (s["p5a_eng_soa"]?.stampedAt) elapsed += 2 * WH;            // 2 hours (not 3)
   if (s["p5a_chief_soa"]?.stampedAt) elapsed += 1 * WH;
   if (s["p5a_dir_soa"]?.stampedAt) elapsed += 1 * WH;
   if (s["p6a_recv_dir"]?.stampedAt) elapsed += 2 * WH;
   if (s["p7_payment"]?.stampedAt) elapsed += 20 * WM;
-  if (s["p8_release"]?.stampedAt) elapsed += 2 * WH;
-  if (s["p8_scan"]?.stampedAt) elapsed += 40 * WM;
-  const totalBudget = 1*WD + 1*WD + 7*WD + 4*WH + 3*WD + 1*WD + 1*WD + 2*WD + 2*WH + 3*WH + 1*WH + 1*WH + 2*WH + 20*WM + 2*WH + 40*WM;
+  if (s["p8_recv_client"]?.stampedAt) elapsed += 2 * WH;         // 2 hours
+  if (s["p8_release"]?.stampedAt) elapsed += 40 * WM;            // 40 minutes (not 2 WH)
+  // p8_scan marks end — no budget contribution
+  const totalBudget = 1*WD + 1*WD + 7*WD + 4*WH + 3*WD + 1*WD + (1*WD+4*WH) + 2*WD + 2*WH + 2*WH + 1*WH + 1*WH + 2*WH + 20*WM + 2*WH + 40*WM;
   return Math.min(99, Math.round((elapsed / totalBudget) * 100));
 }
 
